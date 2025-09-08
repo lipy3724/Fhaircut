@@ -407,8 +407,14 @@ function handleCapturePayPalPayments() {
         
         // 捕获PayPal支付
         $capture_result = capturePayPalPayment($api_url, $access_token, $paypal_order_id);
-        if (!$capture_result || $capture_result['status'] !== 'COMPLETED') {
-            throw new Exception("Failed to capture PayPal payment");
+        if (!$capture_result || !isset($capture_result['status']) || $capture_result['status'] !== 'COMPLETED') {
+            $error_msg = "Failed to capture PayPal payment";
+            if ($capture_result && isset($capture_result['details'])) {
+                $error_msg .= ": " . json_encode($capture_result['details']);
+            } elseif ($capture_result) {
+                $error_msg .= ": " . json_encode($capture_result);
+            }
+            throw new Exception($error_msg);
         }
         
         // 获取购物车商品信息
@@ -654,14 +660,27 @@ function capturePayPalPayment($api_url, $access_token, $order_id) {
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     
     $result = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
     if (curl_errno($ch)) {
-        error_log('PayPal capture payment error: ' . curl_error($ch));
+        error_log('PayPal capture payment cURL error: ' . curl_error($ch));
         curl_close($ch);
         return null;
     }
     curl_close($ch);
     
-    return json_decode($result, true);
+    $decoded_result = json_decode($result, true);
+    
+    // 记录PayPal API响应用于调试
+    error_log('PayPal capture payment response (HTTP ' . $http_code . '): ' . $result);
+    
+    // 检查HTTP状态码
+    if ($http_code !== 200 && $http_code !== 201) {
+        error_log('PayPal capture payment failed with HTTP code: ' . $http_code);
+        return $decoded_result; // 仍然返回响应，让调用者处理错误
+    }
+    
+    return $decoded_result;
 }
 
 function saveCartPayPalMapping($cart_ids, $paypal_order_id, $total_amount) {
