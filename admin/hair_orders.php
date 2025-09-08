@@ -677,13 +677,22 @@ if ($stmt) {
         </div>
     </div>
 
+    <!-- 添加加载中弹窗 -->
+    <div id="email-sending-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 9999; display: none; justify-content: center; align-items: center;">
+        <div id="email-sending-content" style="background-color: white; padding: 30px; border-radius: 8px; text-align: center; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <div style="margin-bottom: 20px; font-size: 18px; color: #333;">正在发送邮件...</div>
+            <div style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #e75480; border-radius: 50%; margin: 0 auto 20px; animation: spin 1s linear infinite;"></div>
+            <div>请稍候，邮件发送可能需要几秒钟时间</div>
+        </div>
+    </div>
+
     <script>
         // 自动提交表单当改变每页显示数量时
         document.getElementById('items_per_page').addEventListener('change', function() {
             this.form.submit();
         });
         
-        // 重发邮件函数
+        // 重发邮件函数 - 更新为与产品订单一致的弹窗提示
         function resendEmail(orderId) {
             if (!orderId) {
                 alert('订单ID无效');
@@ -695,14 +704,8 @@ if ($stmt) {
                 return;
             }
             
-            // 获取按钮元素
-            const button = document.querySelector(`a[onclick="resendEmail(${orderId})"]`);
-            if (button) {
-                const originalText = button.textContent;
-                button.textContent = '发送中...';
-                button.style.pointerEvents = 'none';
-                button.style.opacity = '0.6';
-            }
+            // 显示加载中弹窗
+            document.getElementById("email-sending-overlay").style.display = "flex";
             
             // 发送AJAX请求
             const formData = new FormData();
@@ -721,32 +724,62 @@ if ($stmt) {
                 return response.json();
             })
             .then(data => {
-                // 处理JSON响应
+                // 更新加载中弹窗内容
+                const overlay = document.getElementById("email-sending-overlay");
+                const overlayContent = document.getElementById("email-sending-content");
+                
                 if (data.status === 'success') {
-                    alert('邮件发送成功！\n订单: ' + (data.order_id || '未知') + '\n邮箱: ' + (data.email || '未知'));
-                    // 刷新页面以更新状态
-                    window.location.reload();
+                    // 成功发送邮件
+                    overlayContent.innerHTML = `
+                        <div style="margin-bottom: 20px; font-size: 18px; color: #28a745;">邮件发送成功</div>
+                        <div style="margin-bottom: 20px;">邮件已成功发送至 ${data.email || '指定邮箱'}</div>
+                        <div style="margin-bottom: 10px;">订单ID: ${data.order_id || '未知'}</div>
+                        <div style="margin-top: 20px;">
+                            <button onclick="location.reload()" style="background-color: #e75480; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">刷新页面</button>
+                        </div>
+                    `;
+                    
+                    // 3秒后自动刷新页面
+                    setTimeout(function() {
+                        location.reload();
+                    }, 3000);
                 } else if (data.status === 'warning') {
-                    alert('警告: ' + data.message);
-                    window.location.reload();
-                } else if (data.status === 'error') {
-                    alert('发送失败: ' + data.message);
+                    // 发送成功但有警告
+                    overlayContent.innerHTML = `
+                        <div style="margin-bottom: 20px; font-size: 18px; color: #ffc107;">发送完成（有警告）</div>
+                        <div style="margin-bottom: 20px;">${data.message}</div>
+                        <div style="margin-top: 20px;">
+                            <button onclick="location.reload()" style="background-color: #e75480; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">刷新页面</button>
+                        </div>
+                    `;
+                    
+                    // 3秒后自动刷新页面
+                    setTimeout(function() {
+                        location.reload();
+                    }, 3000);
                 } else {
-                    alert('未知响应格式，请检查邮件状态');
-                    window.location.reload();
+                    // 发送失败
+                    overlayContent.innerHTML = `
+                        <div style="margin-bottom: 20px; font-size: 18px; color: #dc3545;">邮件发送失败</div>
+                        <div style="margin-bottom: 20px;">${data.message || '未知错误'}</div>
+                        <div style="margin-top: 20px;">
+                            <button onclick="document.getElementById('email-sending-overlay').style.display='none'" style="background-color: #e75480; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">关闭</button>
+                        </div>
+                    `;
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('发送请求失败，请检查网络连接');
-            })
-            .finally(() => {
-                // 恢复按钮状态
-                if (button) {
-                    button.textContent = '重发邮件';
-                    button.style.pointerEvents = 'auto';
-                    button.style.opacity = '1';
-                }
+                console.error('发送请求时出错:', error);
+                
+                // 显示错误弹窗
+                const overlayContent = document.getElementById("email-sending-content");
+                overlayContent.innerHTML = `
+                    <div style="margin-bottom: 20px; font-size: 18px; color: #dc3545;">请求失败</div>
+                    <div style="margin-bottom: 20px;">发送请求时出错: ${error.message}</div>
+                    <div style="margin-top: 20px;">
+                        <button onclick="document.getElementById('email-sending-overlay').style.display='none'" style="background-color: #e75480; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">关闭</button>
+                    </div>
+                `;
             });
         }
         
@@ -768,5 +801,12 @@ if ($stmt) {
             });
         });
     </script>
+
+    <style>
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    </style>
 </body>
 </html>

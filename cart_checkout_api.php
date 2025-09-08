@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 // 开启错误日志
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
-error_log("Cart checkout API called: " . $_SERVER['REQUEST_URI']);
+error_log("Cart checkout API called: " . ($_SERVER['REQUEST_URI'] ?? 'CLI'));
 
 // 设置错误处理函数
 function handleError($errno, $errstr, $errfile, $errline) {
@@ -27,7 +27,9 @@ function handleException($exception) {
 set_error_handler('handleError');
 set_exception_handler('handleException');
 
-session_start();
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/db_config.php';
 require_once __DIR__ . '/CartManager.php';
 
@@ -336,6 +338,20 @@ function handleCreatePayPalOrders() {
             $total_amount += floatval($item['price']);
         }
         
+        // 准备商品详情
+        $paypal_items = [];
+        foreach ($items as $item) {
+            $paypal_items[] = [
+                'name' => $item['title'] ?? 'Product',
+                'unit_amount' => [
+                    'currency_code' => 'USD',
+                    'value' => number_format(floatval($item['price']), 2, '.', '')
+                ],
+                'quantity' => '1',
+                'category' => 'DIGITAL_GOODS'
+            ];
+        }
+        
         // 创建一个合并订单（包含所有商品）
         $order_data = [
             'intent' => 'CAPTURE',
@@ -345,9 +361,24 @@ function handleCreatePayPalOrders() {
                     'description' => 'Cart Checkout - ' . count($items) . ' items',
                     'amount' => [
                         'currency_code' => 'USD',
-                        'value' => number_format($total_amount, 2, '.', '')
-                    ]
+                        'value' => number_format($total_amount, 2, '.', ''),
+                        'breakdown' => [
+                            'item_total' => [
+                                'currency_code' => 'USD',
+                                'value' => number_format($total_amount, 2, '.', '')
+                            ]
+                        ]
+                    ],
+                    'items' => $paypal_items
                 ]
+            ],
+            'application_context' => [
+                'cancel_url' => env('APP_URL', 'http://localhost') . ':' . env('APP_PORT', 8082) . '/cancel.html',
+                'return_url' => env('APP_URL', 'http://localhost') . ':' . env('APP_PORT', 8082) . '/success.html',
+                'brand_name' => 'Jianfa Store',
+                'locale' => 'en-US',
+                'landing_page' => 'NO_PREFERENCE',
+                'user_action' => 'PAY_NOW'
             ]
         ];
         
@@ -606,7 +637,11 @@ function getPayPalAccessToken($api_url, $client_id, $client_secret) {
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, 'grant_type=client_credentials');
     curl_setopt($ch, CURLOPT_USERPWD, $client_id . ':' . $client_secret);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/x-www-form-urlencoded',
+        'Accept: application/json',
+        'Accept-Language: en_US'
+    ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     
@@ -630,18 +665,29 @@ function createPayPalOrder($api_url, $access_token, $order_data) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($order_data));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
-        'Authorization: Bearer ' . $access_token
+        'Authorization: Bearer ' . $access_token,
+        'Accept: application/json',
+        'PayPal-Request-Id: ' . uniqid(),
+        'Prefer: return=representation'
     ]);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
     
     $result = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    
     if (curl_errno($ch)) {
-        error_log('PayPal create order error: ' . curl_error($ch));
+        error_log('PayPal create order cURL error: ' . curl_error($ch));
         curl_close($ch);
         return null;
     }
+    
     curl_close($ch);
+    
+    if ($http_code !== 201) {
+        error_log("PayPal create order HTTP error: $http_code, Response: $result");
+        return null;
+    }
     
     return json_decode($result, true);
 }
