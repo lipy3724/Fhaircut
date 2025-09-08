@@ -858,6 +858,44 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                 font-size: 12px;
             }
         }
+
+        /* 简单加载动画样式 - 参考产品详情页面 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            border-radius: 6px;
+        }
+
+        .loading-overlay .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+
+        .loading-overlay p {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -1555,14 +1593,24 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                 }
                 
                 if (confirm(`Do you want to pay $${total.toFixed(2)} using your account balance?`)) {
-                    processBalancePayment(cartIds);
+                    // 显示按钮加载状态
+                    const $button = $(this);
+                    $button.prop('disabled', true);
+                    $button.html('Processing...');
+                    
+                    processBalancePayment(cartIds, $button);
                 }
             });
         }
         
         // 处理余额支付
-        function processBalancePayment(cartIds) {
-            showPaymentWaitingModal();
+        function processBalancePayment(cartIds, $button) {
+            // 显示简单加载弹窗
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = '<div class="spinner"></div><p>Transaction processing...</p>';
+            loadingOverlay.style.display = 'flex';
+            document.body.appendChild(loadingOverlay);
             
             $.ajax({
                 url: 'cart_checkout_api.php',
@@ -1573,35 +1621,44 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                 },
                 dataType: 'json',
                 success: function(response) {
-                    // 确保最后一步完成动画
-                    setTimeout(function() {
-                        $('#step-3').removeClass('active').addClass('completed');
-                        $('#step-3 .step-icon').text('✓');
-                        
-                        setTimeout(function() {
-                            hidePaymentWaitingModal();
-                            
-                            if (response.success) {
-                                showPaymentSuccess(response.order_ids);
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 3000);
-                            } else {
-                                // 检查是否是邮件发送失败
-                                if (response.email_failed || (response.error && response.error.includes('Email sending failed'))) {
-                                    alert('Email sending failed - rate limited. Your balance was not charged. Please wait 30 seconds before trying again.');
-                                } else {
-                                    alert('Payment failed: ' + (response.error || response.message));
-                                }
-                            }
-                        }, 1000);
-                    }, 1000);
+                    // 隐藏加载弹窗
+                    if (loadingOverlay) {
+                        loadingOverlay.remove();
+                    }
+                    
+                    // 恢复按钮状态
+                    if ($button) {
+                        $button.prop('disabled', false);
+                        $button.html('Pay with Balance');
+                    }
+                    
+                    if (response.success) {
+                        showPaymentSuccess(response.order_ids);
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    } else {
+                        // 检查是否是邮件发送失败
+                        if (response.email_failed || (response.error && response.error.includes('Email sending failed'))) {
+                            alert('Email sending failed - rate limited. Your balance was not charged. Please wait 30 seconds before trying again.');
+                        } else {
+                            alert('Payment failed: ' + (response.error || response.message));
+                        }
+                    }
                 },
                 error: function() {
-                    setTimeout(function() {
-                        hidePaymentWaitingModal();
-                        alert('Network error, please try again');
-                    }, 1000);
+                    // 隐藏加载弹窗
+                    if (loadingOverlay) {
+                        loadingOverlay.remove();
+                    }
+                    
+                    // 恢复按钮状态
+                    if ($button) {
+                        $button.prop('disabled', false);
+                        $button.html('Pay with Balance');
+                    }
+                    
+                    alert('Network error, please try again');
                 }
             });
         }
