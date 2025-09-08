@@ -56,12 +56,12 @@ if (isset($_POST['action']) && $_POST['action'] == 'send_code') {
     if (saveVerificationCode($email, $verification_code, $conn)) {
         // 发送验证邮件
         if (sendVerificationEmail($email, $email, $verification_code)) {
-            echo json_encode(['status' => 'success', 'message' => 'Verification code has been sent to your email']);
+            echo json_encode(['status' => 'success', 'message' => 'Email verification code has been sent to your email']);
         } else {
-            echo json_encode(['status' => 'error', 'message' => 'Failed to send verification code, please try again later']);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to send email verification code, please try again later']);
         }
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'Failed to save verification code, please try again later']);
+        echo json_encode(['status' => 'error', 'message' => 'Failed to save email verification code, please try again later']);
     }
     exit;
 }
@@ -141,13 +141,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['action'])) {
     
     // 验证验证码
     if (empty(trim($_POST["verification_code"]))) {
-        $verification_code_err = "Please enter verification code";
+        $verification_code_err = "Please enter email verification code";
     } else {
         $verification_code = trim($_POST["verification_code"]);
         
         // 只通过数据库验证验证码
         if (!verifyEmailCode($email, $verification_code, $conn)) {
-            $verification_code_err = "Invalid or expired verification code";
+            $verification_code_err = "Invalid or expired email verification code";
         }
     }
     
@@ -448,7 +448,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['action'])) {
             </div>
             
             <div class="form-group">
-                <label>Verification Code</label>
+                <label>Email Verification Code</label>
                 <div class="verification-group">
                     <input type="text" name="verification_code" id="verification_code" maxlength="6" value="<?php echo $verification_code; ?>">
                     <button type="button" class="send-code-btn" id="sendCodeBtn">Send Code</button>
@@ -502,19 +502,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['action'])) {
                 const email = emailInput.value.trim();
                 
                 if (!email) {
-                    codeMessage.textContent = 'Please enter your email address';
+                    codeMessage.textContent = 'Please enter your email address to receive verification code';
                     codeMessage.className = 'code-message code-error';
                     return;
                 }
                 
                 if (!isValidEmail(email)) {
-                    codeMessage.textContent = 'Please enter a valid email address';
+                    codeMessage.textContent = 'Please enter a valid email address to receive verification code';
                     codeMessage.className = 'code-message code-error';
                     return;
                 }
                 
                 // 显示发送中状态
-                codeMessage.textContent = 'Sending verification code... This may take up to 60 seconds';
+                codeMessage.textContent = 'Sending email verification code... This may take up to 60 seconds';
                 codeMessage.className = 'code-message';
                 
                 // 禁用按钮并开始倒计时
@@ -572,7 +572,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && !isset($_POST['action'])) {
                     
                     // 如果是超时错误
                     if (error.name === 'AbortError') {
-                        codeMessage.textContent = 'Request timed out. The verification code may still be sent, please check your email.';
+                        codeMessage.textContent = 'Request timed out. The email verification code may still be sent, please check your email.';
                     } else {
                         codeMessage.textContent = 'An error occurred. Please try again.';
                     }
