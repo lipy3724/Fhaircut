@@ -63,7 +63,42 @@ if ($result) {
     mysqli_free_result($result);
 }
 
-// 获取产品
+// 分页设置
+// 从设置中获取每页显示数量
+$productsPerPage = 10; // 默认值
+$sql = "SELECT setting_value FROM settings WHERE setting_key = 'items_per_page'";
+$result = mysqli_query($conn, $sql);
+if ($result && $row = mysqli_fetch_assoc($result)) {
+    $productsPerPage = intval($row['setting_value']);
+    if ($productsPerPage < 1) {
+        $productsPerPage = 10; // 如果设置值无效，使用默认值
+    }
+    mysqli_free_result($result);
+}
+
+// 获取产品总数
+$countSql = "SELECT COUNT(*) as total FROM products p";
+if ($currentCategory > 0) {
+    $countSql .= " WHERE p.category_id = " . $currentCategory;
+}
+
+$result = mysqli_query($conn, $countSql);
+$totalProducts = 0;
+if ($result && $row = mysqli_fetch_assoc($result)) {
+    $totalProducts = $row['total'];
+    mysqli_free_result($result);
+}
+
+$totalPages = ceil($totalProducts / $productsPerPage);
+$currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+$currentPage = min($currentPage, max(1, $totalPages));
+$start = ($currentPage - 1) * $productsPerPage;
+
+// 调试信息（可以在解决问题后删除）
+// echo "<!-- Debug: currentPage = $currentPage, totalPages = $totalPages, totalProducts = $totalProducts, productsPerPage = $productsPerPage -->";
+
+
+// 获取当前页的产品
 $products = [];
 $sql = "SELECT p.*, c.name as category_name 
         FROM products p 
@@ -77,33 +112,17 @@ if ($currentCategory > 0) {
 // 添加排序
 $sql .= " ORDER BY p." . $sort . " " . strtoupper($order);
 
-$result = mysqli_query($conn, $sql);
+// 添加分页限制
+$sql .= " LIMIT " . $start . ", " . $productsPerPage;
 
+$result = mysqli_query($conn, $sql);
+$pagedProducts = [];
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
-        $products[] = $row;
+        $pagedProducts[] = $row;
     }
     mysqli_free_result($result);
 }
-
-// 分页
-// 从设置中获取每页显示数量
-$productsPerPage = 10; // 默认值
-$sql = "SELECT setting_value FROM settings WHERE setting_key = 'items_per_page'";
-$result = mysqli_query($conn, $sql);
-if ($result && $row = mysqli_fetch_assoc($result)) {
-    $productsPerPage = intval($row['setting_value']);
-    if ($productsPerPage < 1) {
-        $productsPerPage = 10; // 如果设置值无效，使用默认值
-    }
-    mysqli_free_result($result);
-}
-$totalProducts = count($products);
-$totalPages = ceil($totalProducts / $productsPerPage);
-$currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$currentPage = min($currentPage, max(1, $totalPages));
-$start = ($currentPage - 1) * $productsPerPage;
-$pagedProducts = array_slice($products, $start, $productsPerPage);
 
 // 获取联系信息设置
 $contact_email = "info@haircut.network"; // 默认值
@@ -813,10 +832,10 @@ if ($result) {
         <div class="sidebar">
             <h3>Navigation:</h3>
             <ul class="category-list">
-                <li><a href="home.php" class="<?php echo ($currentPage === 'home.php') ? 'active' : ''; ?>">Homepage</a></li>
-                <li><a href="main.php" class="<?php echo ($currentPage === 'main.php') ? 'active' : ''; ?>">All works</a></li>
-                <li><a href="hair_list.php" class="<?php echo ($currentPage === 'hair_list.php') ? 'active' : ''; ?>">Hair List</a></li>
-                <li><a href="taday_42_off.php" class="<?php echo ($currentPage === 'taday_42_off.php') ? 'active' : ''; ?>">Today 42.0% off</a></li>
+                <li><a href="home.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'home.php') ? 'active' : ''; ?>">Homepage</a></li>
+                <li><a href="main.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'main.php') ? 'active' : ''; ?>">All works</a></li>
+                <li><a href="hair_list.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'hair_list.php') ? 'active' : ''; ?>">Hair List</a></li>
+                <li><a href="taday_42_off.php" class="<?php echo (basename($_SERVER['PHP_SELF']) === 'taday_42_off.php') ? 'active' : ''; ?>">Today 42.0% off</a></li>
             </ul>
             
             <h3>Product Categories:</h3>
@@ -880,10 +899,23 @@ if ($result) {
                 ?>
                 You now have full access to all features.
                 <?php 
-                // 将auto_activated参数存入会话，然后重定向到不带参数的页面
+                // 将auto_activated参数存入会话，然后重定向到不带auto_activated参数的页面
                 $_SESSION["just_activated"] = true;
                 $_SESSION["activation_reason"] = $reason;
-                echo "<script>window.history.replaceState({}, document.title, 'main.php');</script>";
+                
+                // 构建新的URL，保留其他参数但移除auto_activated
+                $newUrl = 'main.php';
+                $params = [];
+                if (isset($_GET['category'])) $params[] = 'category=' . urlencode($_GET['category']);
+                if (isset($_GET['sort'])) $params[] = 'sort=' . urlencode($_GET['sort']);
+                if (isset($_GET['order'])) $params[] = 'order=' . urlencode($_GET['order']);
+                if (isset($_GET['page'])) $params[] = 'page=' . urlencode($_GET['page']);
+                
+                if (!empty($params)) {
+                    $newUrl .= '?' . implode('&', $params);
+                }
+                
+                echo "<script>window.history.replaceState({}, document.title, '" . htmlspecialchars($newUrl, ENT_QUOTES) . "');</script>";
                 ?>
             </div>
             <?php elseif (isset($_SESSION["just_activated"]) && $_SESSION["just_activated"]): ?>
@@ -1051,6 +1083,11 @@ if ($result) {
                 <?php endforeach; ?>
             </div>
             
+            <?php
+            // 清理变量以防止干扰分页变量
+            unset($product);
+            ?>
+            
             <!-- 保留原来的产品网格，但设置为不显示 -->
             <div class="products-grid" style="display: none;">
                 <?php foreach ($pagedProducts as $index => $product): ?>
@@ -1105,28 +1142,51 @@ if ($result) {
                 <?php endforeach; ?>
             </div>
             
+            <?php
+            // 清理变量以防止干扰分页变量
+            unset($product);
+            unset($index);
+            unset($isFirstColumn);
+            unset($isMemberOnly);
+            
+            ?>
+            
             <?php if ($totalPages > 1): ?>
+            <?php 
+            // 调试信息
+            echo "<!-- DEBUG: Original GET params: " . print_r($_GET, true) . " -->\n";
+            echo "<!-- DEBUG: Original currentPage = " . $currentPage . " (type: " . gettype($currentPage) . ") -->\n";
+            echo "<!-- DEBUG: totalPages = " . $totalPages . " -->\n";
+            echo "<!-- DEBUG: URL: " . $_SERVER['REQUEST_URI'] . " -->\n";
+            
+            // 重新计算当前页面，确保正确
+            $pageCurrent = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+            $pageCurrent = min($pageCurrent, max(1, $totalPages));
+            
+            echo "<!-- DEBUG: Recalculated pageCurrent = " . $pageCurrent . " -->\n";
+            echo "<!-- DEBUG: pageCurrent > 1 = " . ($pageCurrent > 1 ? 'true' : 'false') . " -->\n";
+            ?>
             <div class="pagination">
-                <?php if ($currentPage > 1): ?>
-                <a href="main.php?category=<?php echo $currentCategory; ?>&sort=<?php echo $sort; ?>&order=<?php echo $order; ?>&page=<?php echo $currentPage - 1; ?>">Previous</a>
+                <?php if ($pageCurrent > 1): ?>
+                <a href="main.php?category=<?php echo htmlspecialchars($currentCategory); ?>&sort=<?php echo htmlspecialchars($sort); ?>&order=<?php echo htmlspecialchars($order); ?>&page=<?php echo $pageCurrent - 1; ?>">Previous</a>
                 <?php endif; ?>
                 
                 <?php
-                $startPage = max(1, $currentPage - 2);
-                $endPage = min($totalPages, $currentPage + 2);
+                $startPage = max(1, $pageCurrent - 2);
+                $endPage = min($totalPages, $pageCurrent + 2);
                 
                 if ($startPage > 1) {
-                    echo '<a href="main.php?category=' . $currentCategory . '&sort=' . $sort . '&order=' . $order . '&page=1">1</a>';
+                    echo '<a href="main.php?category=' . htmlspecialchars($currentCategory) . '&sort=' . htmlspecialchars($sort) . '&order=' . htmlspecialchars($order) . '&page=1">1</a>';
                     if ($startPage > 2) {
                         echo '<span>...</span>';
                     }
                 }
                 
                 for ($i = $startPage; $i <= $endPage; $i++) {
-                    if ($i == $currentPage) {
+                    if ($i == $pageCurrent) {
                         echo '<span>' . $i . '</span>';
                     } else {
-                        echo '<a href="main.php?category=' . $currentCategory . '&sort=' . $sort . '&order=' . $order . '&page=' . $i . '">' . $i . '</a>';
+                        echo '<a href="main.php?category=' . htmlspecialchars($currentCategory) . '&sort=' . htmlspecialchars($sort) . '&order=' . htmlspecialchars($order) . '&page=' . $i . '">' . $i . '</a>';
                     }
                 }
                 
@@ -1134,17 +1194,17 @@ if ($result) {
                     if ($endPage < $totalPages - 1) {
                         echo '<span>...</span>';
                     }
-                    echo '<a href="main.php?category=' . $currentCategory . '&sort=' . $sort . '&order=' . $order . '&page=' . $totalPages . '">' . $totalPages . '</a>';
+                    echo '<a href="main.php?category=' . htmlspecialchars($currentCategory) . '&sort=' . htmlspecialchars($sort) . '&order=' . htmlspecialchars($order) . '&page=' . $totalPages . '">' . $totalPages . '</a>';
                 }
                 ?>
                 
-                <?php if ($currentPage < $totalPages): ?>
-                <a href="main.php?category=<?php echo $currentCategory; ?>&sort=<?php echo $sort; ?>&order=<?php echo $order; ?>&page=<?php echo $currentPage + 1; ?>">Next</a>
+                <?php if ($pageCurrent < $totalPages): ?>
+                <a href="main.php?category=<?php echo htmlspecialchars($currentCategory); ?>&sort=<?php echo htmlspecialchars($sort); ?>&order=<?php echo htmlspecialchars($order); ?>&page=<?php echo $pageCurrent + 1; ?>">Next</a>
                 <?php endif; ?>
                 
                 <div class="page-jump">
                     <span>Go to</span>
-                    <input type="number" min="1" max="<?php echo $totalPages; ?>" value="<?php echo $currentPage; ?>" id="page-input">
+                    <input type="number" min="1" max="<?php echo $totalPages; ?>" value="<?php echo $pageCurrent; ?>" id="page-input">
                     <button onclick="jumpToPage()">Go</button>
                 </div>
             </div>
@@ -1155,12 +1215,18 @@ if ($result) {
     <footer>
         <?php
         // 获取联系信息设置
-        $contact_email = get_setting($conn, 'contact_email', 'info@haircut.network');
-        $contact_email2 = get_setting($conn, 'contact_email2', 'support@haircut.network');
-        $wechat = get_setting($conn, 'wechat', 'haircut_wechat');
+        try {
+            $contact_email = get_setting($conn, 'contact_email', 'info@haircut.network');
+            $contact_email2 = get_setting($conn, 'contact_email2', 'support@haircut.network');
+            $wechat = get_setting($conn, 'wechat', 'haircut_wechat');
+        } catch (Exception $e) {
+            $contact_email = 'info@haircut.network';
+            $contact_email2 = 'support@haircut.network';
+            $wechat = 'haircut_wechat';
+        }
         ?>
         <p>Email: <?php echo htmlspecialchars($contact_email); ?> / <?php echo htmlspecialchars($contact_email2); ?></p>
-        <p>微信：<?php echo htmlspecialchars($wechat); ?></p>
+        <p>WeChat: <?php echo htmlspecialchars($wechat); ?></p>
     </footer>
     
     <script>
@@ -1168,7 +1234,7 @@ if ($result) {
             const pageInput = document.getElementById('page-input');
             const page = parseInt(pageInput.value);
             if (page >= 1 && page <= <?php echo $totalPages; ?>) {
-                window.location.href = 'main.php?category=<?php echo $currentCategory; ?>&sort=<?php echo $sort; ?>&order=<?php echo $order; ?>&page=' + page;
+                window.location.href = 'main.php?category=<?php echo htmlspecialchars($currentCategory); ?>&sort=<?php echo htmlspecialchars($sort); ?>&order=<?php echo htmlspecialchars($order); ?>&page=' + page;
             }
         }
         

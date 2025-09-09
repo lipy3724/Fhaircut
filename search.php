@@ -1,4 +1,4 @@
-发送一封邮件包含多个商品信息（产品1，产品2，头发1，格式参考已有邮件），但后台创建多个订单（一个商品一个订单），邮件发送成功后扣除总金额，发送不成功则不抠出任何金额发送一封邮件包含多个商品信息（产品1，产品2，头发1，格式参考已有邮件），但后台创建多个订单（一个商品一个订单），邮件发送成功后扣除总金额，发送不成功则不抠出任何金额<?php
+<?php
 // 启动会话
 session_start();
 
@@ -771,7 +771,7 @@ if (!empty($keyword)) {
         $contact_phone = get_setting($conn, 'contact_phone', '+1-123-456-7890');
         ?>
         <p>Email: <?php echo htmlspecialchars($contact_email); ?> / <?php echo htmlspecialchars(get_setting($conn, 'contact_email2', 'support@haircut.network')); ?></p>
-        <p>微信：<?php echo htmlspecialchars(get_setting($conn, 'wechat', 'haircut_wechat')); ?></p>
+        <p>WeChat: <?php echo htmlspecialchars(get_setting($conn, 'wechat', 'haircut_wechat')); ?></p>
     </footer>
 </body>
 </html> 

@@ -863,7 +863,7 @@ $currentPage = 'home.php';
         $wechat = get_setting($conn, 'wechat', 'haircut_wechat');
         ?>
         <p>Email: <?php echo htmlspecialchars($contact_email); ?> / <?php echo htmlspecialchars($contact_email2); ?></p>
-        <p>微信：<?php echo htmlspecialchars($wechat); ?></p>
+        <p>WeChat: <?php echo htmlspecialchars($wechat); ?></p>
     </footer>
     
     <script>

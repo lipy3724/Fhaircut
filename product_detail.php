@@ -613,7 +613,7 @@ $showPhotoCartButton = $hasPhotoPackPrice && $hasPhotoContent;
       <a href="main.php" style="display: inline-block; padding: 5px 10px; color: #4A4A4A; text-decoration: none; margin-right: 10px; font-size: 14px;">
         <span style="display: inline-flex; align-items: center;">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M15 18l-6-6 6-6"/></svg>
-          返回列表
+          Back to List
         </span>
       </a>
       <?php echo $product['id']; ?>. <?php echo htmlspecialchars($product['title']); ?>
@@ -762,7 +762,7 @@ $showPhotoCartButton = $hasPhotoPackPrice && $hasPhotoContent;
 
     <!-- 产品图片展示区域 -->
     <div class="gallery">
-      <h3>产品图片</h3>
+      <h3>Product Images</h3>
       
       <?php 
         // 游客显示带水印的图片1-4（包括主图）
@@ -777,6 +777,14 @@ $showPhotoCartButton = $hasPhotoPackPrice && $hasPhotoContent;
       <?php 
             endif;
           endfor;
+          // 在游客图片末尾添加提示信息
+      ?>
+          <div style="margin: 30px 0; padding: 25px; background-color: #ffe4e8; border-radius: 8px; text-align: center;">
+            <p style="margin: 0; color: #d64072; font-size: 20px; font-weight: bold; line-height: 1.5;">
+              To view more exclusive photos, please recharge to activate membership or purchase more videos!
+            </p>
+          </div>
+      <?php
         } else {
           // 会员显示无水印的图片1-6（完全替换游客图片）
           // 主图位置也显示会员图片

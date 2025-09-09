@@ -208,7 +208,7 @@ $hasValue = isset($hair['value']) && is_numeric($hair['value']) && floatval($hai
     .meta-item { font-size: 13px; color: #555; }
     .meta-item b { color: #222; }
 
-    .purchase { background: #fff; border-radius: 6px; padding: 12px; box-shadow: 0 1px 3px rgba(231, 84, 128, 0.1); margin-top: 12px; width: 50%; float: left; }
+    .purchase { background: #fff; border-radius: 6px; padding: 12px; box-shadow: 0 1px 3px rgba(231, 84, 128, 0.1); margin-top: 12px; width: 50%; float: left; margin-right: 20px; margin-bottom: 20px; }
     .purchase h3 { margin: 0 0 10px 0; font-size: 16px; }
     .purchase .options { display: grid; grid-template-columns: 1fr; gap: 10px; }
     .card { border: 1px solid #f7a4b9; border-radius: 6px; padding: 10px; }
@@ -457,7 +457,7 @@ $hasValue = isset($hair['value']) && is_numeric($hair['value']) && floatval($hai
           <a href="hair_list.php" style="display: inline-block; padding: 5px 10px; color: #4A4A4A; text-decoration: none; margin-right: 10px; font-size: 14px;">
             <span style="display: inline-flex; align-items: center;">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><path d="M15 18l-6-6 6-6"/></svg>
-              返回列表
+              Back to List
             </span>
           </a>
           <?php echo $hair['id']; ?>. <?php echo htmlspecialchars($hair['title']); ?>
@@ -532,7 +532,7 @@ $hasValue = isset($hair['value']) && is_numeric($hair['value']) && floatval($hai
 
         <!-- 头发图片展示区域 -->
         <div class="gallery">
-          <h3>头发图片</h3>
+          <h3>Hair Images</h3>
           
           <?php 
             // 显示头发的所有图片
