@@ -2381,8 +2381,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     
-                    // 确认保存
-                    if (confirm(`确定要保存所有 ${hairCount} 个头发吗？`)) {
+                    // 确认保存 - 使用实际表单数量
+                    const currentCount = hairFormsContainer.querySelectorAll('.hair-form').length;
+                    if (confirm(`确定要保存所有 ${currentCount} 个头发吗？`)) {
                         batchForm.submit();
                     }
                 } else {
@@ -2466,6 +2467,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         }
+    }
+    
+    // 为底部的批量保存按钮添加确认弹窗
+    const batchForm = document.getElementById('batch-hair-form');
+    if (batchForm) {
+        batchForm.addEventListener('submit', function(e) {
+            e.preventDefault(); // 阻止默认提交
+            
+            // 获取当前实际表单数量
+            const hairFormsContainer = document.getElementById('hair-forms-container');
+            const currentCount = hairFormsContainer ? hairFormsContainer.querySelectorAll('.hair-form').length : 0;
+            
+            // 显示确认弹窗
+            if (confirm(`确定要保存所有 ${currentCount} 个头发吗？`)) {
+                // 确认后恢复默认提交行为
+                this.removeEventListener('submit', arguments.callee);
+                this.submit();
+            }
+        });
     }
 });
 </script>
