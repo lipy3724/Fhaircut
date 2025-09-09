@@ -1755,8 +1755,8 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
             return paymentsClient;
         }
         
-        // 初始化Google Pay
-        function initializeGooglePay(cartIds, total) {
+        // 初始化Google Pay（使用PayPal集成）
+        async function initializeGooglePay(cartIds, total) {
             console.log('Initializing Google Pay for cart:', cartIds, total);
             
             if (!window.google || !google.payments || !google.payments.api) {
@@ -1765,9 +1765,14 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                 return;
             }
             
+            try {
+                // 获取PayPal的Google Pay配置来检查可用性
+                const googlePayConfig = await paypal.Googlepay().config();
+                console.log('PayPal Google Pay config retrieved for cart');
+            
             const paymentsClient = getGooglePaymentsClient();
             const isReadyToPayRequest = Object.assign({}, baseRequest);
-            isReadyToPayRequest.allowedPaymentMethods = [baseCardPaymentMethod];
+                isReadyToPayRequest.allowedPaymentMethods = googlePayConfig.allowedPaymentMethods;
             
             // 检查设备是否支持Google Pay
             paymentsClient.isReadyToPay(isReadyToPayRequest)
@@ -1784,6 +1789,10 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                     console.error('Error checking Google Pay availability:', err);
                     $('#googlepay-button-container').hide();
                 });
+            } catch (error) {
+                console.error('Error initializing Google Pay for cart:', error);
+                $('#googlepay-button-container').hide();
+            }
         }
         
         // 添加Google Pay按钮到购物车
@@ -1807,7 +1816,6 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                     overlay.style.display = 'flex';
                     onCartGooglePaymentButtonClicked(cartIds, total, overlay);
                 },
-                allowedPaymentMethods: [baseCardPaymentMethod],
                 buttonColor: 'black',
                 buttonType: 'buy',
                 buttonSizeMode: 'fill'
@@ -1817,69 +1825,97 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
         }
         
         // 处理购物车Google Pay按钮点击
-        function onCartGooglePaymentButtonClicked(cartIds, total, overlay) {
+        async function onCartGooglePaymentButtonClicked(cartIds, total, overlay) {
+            try {
             console.log('Cart Google Pay button clicked:', cartIds, total);
             
-            // 创建PayPal订单用于购物车商品
-            createCartPayPalOrder(cartIds, total)
-                .then(function(orderId) {
-                    console.log('PayPal order created for cart:', orderId);
+                // 获取Google Pay支付数据请求
+                let paymentDataRequest;
+                try {
+                    paymentDataRequest = await getCartGooglePaymentDataRequest(cartIds, total);
+                    console.log('Cart payment data request:', paymentDataRequest);
+                } catch (err) {
+                    console.error('Error getting cart payment data request:', err);
+                    overlay.style.display = 'none';
+                    alert('无法初始化Google Pay。请稍后再试或使用其他支付方式。');
+                    return;
+                }
+                
+                // 加载Google Pay支付表单
+                const paymentsClient = getGooglePaymentsClient();
+                
+                try {
+                    // Google Pay支付处理将在onCartPaymentAuthorized回调中完成
+                    await paymentsClient.loadPaymentData(paymentDataRequest);
+                    console.log('Cart loadPaymentData completed successfully');
+                } catch (err) {
+                    overlay.style.display = 'none';
+                    console.error('Cart Google Pay loadPaymentData error:', err);
                     
-                    const paymentDataRequest = {
-                        apiVersion: 2,
-                        apiVersionMinor: 0,
-                        allowedPaymentMethods: [{
-                            type: 'CARD',
-                            parameters: {
-                                allowedAuthMethods: ['PAN_ONLY', 'CRYPTOGRAM_3DS'],
-                                allowedCardNetworks: ['AMEX', 'DISCOVER', 'MASTERCARD', 'VISA']
-                            },
-                            tokenizationSpecification: {
-                                type: 'PAYMENT_GATEWAY',
-                                parameters: {
-                                    gateway: 'paypal',
-                                    gatewayMerchantId: '<?php echo env('PAYPAL_CLIENT_ID'); ?>'
-                                }
-                            }
-                        }],
-                        transactionInfo: {
+                    if (err.statusCode === "CANCELED") {
+                        console.log('User canceled the payment');
+                    } else if (err.statusCode === "DEVELOPER_ERROR") {
+                        console.error('Developer error:', err.statusMessage);
+                        alert('Google Pay配置错误。请联系网站管理员。');
+                    } else {
+                        alert('Google Pay支付失败。请稍后再试。');
+                    }
+                }
+            } catch (error) {
+                overlay.style.display = 'none';
+                console.error('Error in Cart Google Pay flow:', error);
+                alert('Google Pay支付过程中发生错误。请稍后再试。');
+            }
+        }
+        
+        /**
+         * 获取购物车Google Pay支付数据请求（使用PayPal集成）
+         */
+        async function getCartGooglePaymentDataRequest(cartIds, total) {
+            try {
+                // 获取PayPal的Google Pay配置
+                const googlePayConfig = await paypal.Googlepay().config();
+                console.log('PayPal Google Pay config for cart:', googlePayConfig);
+                
+                // 构建支付请求对象
+                const paymentDataRequest = Object.assign({}, baseRequest);
+                
+                // 设置允许的支付方式
+                paymentDataRequest.allowedPaymentMethods = googlePayConfig.allowedPaymentMethods;
+                
+                // 设置交易信息
+                paymentDataRequest.transactionInfo = {
                             totalPriceStatus: 'FINAL',
                             totalPrice: total.toFixed(2),
                             currencyCode: 'USD',
                             countryCode: 'US'
-                        },
-                        merchantInfo: {
-                            merchantName: 'Your Store'
-                        }
-                    };
-                    
-                    const paymentsClient = getGooglePaymentsClient();
-                    return paymentsClient.loadPaymentData(paymentDataRequest);
-                })
-                .then(function(paymentData) {
-                    console.log('Google Pay payment data received for cart:', paymentData);
-                    // 支付成功处理将在onCartPaymentAuthorized中完成
-                })
-                .catch(function(err) {
-                    overlay.style.display = 'none';
-                    console.error('Cart Google Pay error:', err);
-                    
-                    if (err.statusCode === "CANCELED") {
-                        console.log('User canceled the payment');
-                    } else {
-                        alert('Google Pay支付失败。请稍后再试。');
-                    }
-                });
+                };
+                
+                // 设置商家信息
+                paymentDataRequest.merchantInfo = googlePayConfig.merchantInfo;
+                
+                // 设置回调意图
+                paymentDataRequest.callbackIntents = ["PAYMENT_AUTHORIZATION"];
+                
+                console.log('Final cart payment data request:', paymentDataRequest);
+                return paymentDataRequest;
+            } catch (error) {
+                console.error('Error getting cart Google Pay payment data request:', error);
+                throw error;
+            }
         }
         
         // 购物车支付授权回调
         function onCartPaymentAuthorized(paymentData) {
             console.log('Cart payment authorized:', paymentData);
             
-            // 这里应该处理支付完成逻辑
-            // 暂时返回成功状态
             return new Promise(function(resolve, reject) {
-                // 模拟支付处理
+                try {
+                    // 处理支付数据和完成订单
+                    // 这里可以添加实际的支付处理逻辑
+                    console.log('Processing cart payment with data:', paymentData);
+                    
+                    // 模拟支付处理成功
                 setTimeout(function() {
                     console.log('Cart payment processing completed');
                     resolve({ transactionState: 'SUCCESS' });
@@ -1890,6 +1926,10 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                         window.location.reload();
                     }, 1000);
                 }, 1000);
+                } catch (error) {
+                    console.error('Error processing cart payment:', error);
+                    reject({ transactionState: 'ERROR', error: error.message });
+                }
             });
         }
         
