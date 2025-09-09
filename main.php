@@ -981,8 +981,8 @@ if ($result) {
                     </div>
                     
                     <?php 
-                    // 动态显示所有会员图片（从第2张开始）
-                    for ($i = 2; $i <= 20; $i++): 
+                    // 动态显示会员图片（从第2张开始，最多显示到第6张）
+                    for ($i = 2; $i <= 6; $i++): 
                         $memberImageField = 'member_image' . $i;
                         if (!empty($product[$memberImageField])): 
                     ?>
@@ -1051,23 +1051,7 @@ if ($result) {
                     
                     <?php endif; ?>
                     
-                    <!-- 第五列：会员图片5（仅会员可见） -->
-                    <?php if ($isLoggedIn && !empty($product['member_image5'])): ?>
-                    <div class="product-info-column">
-                        <div class="product-image-container">
-                            <img src="<?php echo htmlspecialchars($product['member_image5']); ?>" alt="<?php echo htmlspecialchars($product['title']); ?> - Member Image 5" class="product-image">
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <!-- 第六列：会员图片6（仅会员可见） -->
-                    <?php if ($isLoggedIn && !empty($product['member_image6'])): ?>
-                    <div class="product-info-column">
-                        <div class="product-image-container">
-                            <img src="<?php echo htmlspecialchars($product['member_image6']); ?>" alt="<?php echo htmlspecialchars($product['title']); ?> - Member Image 6" class="product-image">
-                        </div>
-                    </div>
-                    <?php endif; ?>
+                    <!-- 已在上面的循环中显示了会员图片1-6，这里不需要额外显示 -->
                 </div>
                 <?php endforeach; ?>
             </div>
