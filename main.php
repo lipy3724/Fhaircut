@@ -77,10 +77,12 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
 }
 
 // 获取产品总数
-$countSql = "SELECT COUNT(*) as total FROM products p";
+$countSql = "SELECT COUNT(DISTINCT p.id) as total FROM products p LEFT JOIN product_categories pc ON p.id = pc.product_id";
 if ($currentCategory > 0) {
-    $countSql .= " WHERE p.category_id = " . $currentCategory;
+    $countSql .= " WHERE (p.category_id = " . $currentCategory . " OR pc.category_id = " . $currentCategory . ")";
 }
+// 调试信息
+error_log("产品总数SQL: $countSql");
 
 $result = mysqli_query($conn, $countSql);
 $totalProducts = 0;
@@ -100,17 +102,22 @@ $start = ($currentPage - 1) * $productsPerPage;
 
 // 获取当前页的产品
 $products = [];
-$sql = "SELECT p.*, c.name as category_name 
+$sql = "SELECT p.*, c.name as category_name, GROUP_CONCAT(DISTINCT cat.id) as all_category_ids, GROUP_CONCAT(DISTINCT cat.name) as all_category_names
         FROM products p 
-        LEFT JOIN categories c ON p.category_id = c.id";
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN product_categories pc ON p.id = pc.product_id
+        LEFT JOIN categories cat ON pc.category_id = cat.id";
 
 // 添加类别过滤
 if ($currentCategory > 0) {
-    $sql .= " WHERE p.category_id = " . $currentCategory;
+    $sql .= " WHERE (p.category_id = " . $currentCategory . " OR pc.category_id = " . $currentCategory . ")";
 }
 
+// 调试信息
+error_log("获取产品SQL: " . $sql);
+
 // 添加排序
-$sql .= " ORDER BY p." . $sort . " " . strtoupper($order);
+$sql .= " GROUP BY p.id ORDER BY p." . $sort . " " . strtoupper($order);
 
 // 添加分页限制
 $sql .= " LIMIT " . $start . ", " . $productsPerPage;
@@ -528,6 +535,23 @@ if ($result) {
         .product-info {
             padding: 12px;
             text-align: center;
+        }
+        
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        
+        .category-tag {
+            background-color: #ffecf0;
+            color: #e75480;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: inline-block;
         }
         
         .product-title {
@@ -1103,6 +1127,15 @@ if ($result) {
                         </div>
                         <div class="product-info">
                             <div class="product-title"><?php echo $product['id']; ?>. <?php echo htmlspecialchars($product['title']); ?></div>
+                            <?php if (!empty($product['all_category_names'])): ?>
+                                <div class="categories">
+                                    <?php 
+                                    $categories = explode(',', $product['all_category_names']);
+                                    foreach ($categories as $cat_name): ?>
+                                        <span class="category-tag"><?php echo htmlspecialchars($cat_name); ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                             <?php if ($isFirstColumn || $product['guest'] || $isLoggedIn): ?>
                             <!-- Removed View Details as requested -->
                             <?php else: ?>
