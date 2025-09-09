@@ -78,6 +78,29 @@ if (isset($_GET['success']) && $_GET['success'] === 'true' && isset($_GET['order
 
 // 激活费用（美元）
 $activation_fee = 100.00;
+
+// 从数据库获取激活页面设置
+$activation_settings = array();
+$settings_sql = "SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('activation_title', 'activation_subtitle', 'activation_button_text', 'activation_fee', 'activation_note')";
+$settings_result = mysqli_query($conn, $settings_sql);
+
+if ($settings_result) {
+    while ($row = mysqli_fetch_assoc($settings_result)) {
+        $activation_settings[$row['setting_key']] = $row['setting_value'];
+    }
+    mysqli_free_result($settings_result);
+    
+    // 使用数据库中的设置覆盖默认值
+    if (isset($activation_settings['activation_fee']) && is_numeric($activation_settings['activation_fee'])) {
+        $activation_fee = (float)$activation_settings['activation_fee'];
+    }
+}
+
+// 设置默认值
+if (!isset($activation_settings['activation_title'])) $activation_settings['activation_title'] = 'Congratulations! Registration Success!';
+if (!isset($activation_settings['activation_subtitle'])) $activation_settings['activation_subtitle'] = 'Select Payment Method, Activate your account!';
+if (!isset($activation_settings['activation_button_text'])) $activation_settings['activation_button_text'] = 'The account contains USD 100';
+if (!isset($activation_settings['activation_note'])) $activation_settings['activation_note'] = 'Note: You must activate your account to access all features of our website. Without activation, you can only browse as a guest.';
 ?>
 
 <!DOCTYPE html>
@@ -153,9 +176,11 @@ $activation_fee = 100.00;
 <body>
     <div class="activation-container">
         <div class="activation-header">
-            <h1>Congratulations! Registration Success!</h1>
-            <p>Select Payment Method, Activate your account!</p>
-            <p><strong>【The account contains USD 100】</strong></p>
+            <h1><?php echo htmlspecialchars($activation_settings['activation_title']); ?></h1>
+            <p><?php echo htmlspecialchars($activation_settings['activation_subtitle']); ?></p>
+            <?php if (!empty($activation_settings['activation_button_text'])): ?>
+            <p><strong>【<?php echo htmlspecialchars($activation_settings['activation_button_text']); ?>】</strong></p>
+            <?php endif; ?>
         </div>
         
         <div class="activation-details">
@@ -173,7 +198,7 @@ $activation_fee = 100.00;
         <div id="payment-message" style="margin-top: 20px; padding: 10px; border-radius: 5px; display: none;"></div>
         
         <div class="note">
-            <p>Note: You must activate your account to access all features of our website. Without activation, you can only browse as a guest.</p>
+            <p><?php echo htmlspecialchars($activation_settings['activation_note']); ?></p>
         </div>
     </div>
     
