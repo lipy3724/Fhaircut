@@ -226,6 +226,23 @@ $hasValue = isset($hair['value']) && is_numeric($hair['value']) && floatval($hai
     }
     .btn:hover { background: #f7a4b9; }
     
+    .balance-pay-btn-hair {
+        background-color: #e75480;
+        color: white;
+        border: 1px solid #e75480;
+        margin-bottom: 10px;
+        width: 100%;
+        font-weight: bold;
+        cursor: pointer;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+    .balance-pay-btn-hair:hover {
+        background-color: #d64072;
+        border-color: #d64072;
+    }
+    
     .btn-primary {
         background-color: #e75480;
         color: white;
@@ -496,6 +513,9 @@ $hasValue = isset($hair['value']) && is_numeric($hair['value']) && floatval($hai
               <?php if ($hasValue): ?>
               <div class="meta-item">Purchase Price: <span class="price">$<?php echo number_format($hair['value'], 2); ?></span></div>
               <div style="margin-top:8px;">
+                <?php if ($isLoggedIn): ?>
+                <button class="btn balance-pay-btn-hair" data-hair-id="<?php echo $hair['id']; ?>" data-price="<?php echo $hair['value']; ?>">Pay with Balance</button>
+                <?php endif; ?>
                 <div id="paypal-button-hair" data-hair-id="<?php echo $hair['id']; ?>" style="position: relative;"></div>
                 <div id="googlepay-button-container-hair" class="googlepay-button-container" data-hair-id="<?php echo $hair['id']; ?>" style="margin-top: 10px;"></div>
                 <div id="applepay-button-container-hair" class="applepay-button-container" data-hair-id="<?php echo $hair['id']; ?>" style="margin-top: 10px; max-width: 250px;"></div>
@@ -999,6 +1019,115 @@ $hasValue = isset($hair['value']) && is_numeric($hair['value']) && floatval($hai
         }, 300);
       }, 3000);
     }
+    
+    // 头发余额支付处理
+    document.addEventListener('DOMContentLoaded', function() {
+      // 获取用户余额
+      const userBalance = <?php echo isset($userBalance) ? json_encode($userBalance) : 0; ?>;
+      
+      // 为头发余额支付按钮添加点击事件
+      const balancePayBtnHair = document.querySelector('.balance-pay-btn-hair');
+      if (balancePayBtnHair) {
+        balancePayBtnHair.addEventListener('click', function() {
+          const hairId = this.getAttribute('data-hair-id');
+          const price = parseFloat(this.getAttribute('data-price'));
+          
+          // 检查余额是否足够
+          if (userBalance < price) {
+            alert('Insufficient balance. Your balance: $' + userBalance.toFixed(2) + ', Price: $' + price.toFixed(2));
+            return;
+          }
+          
+          // 确认购买
+          if (confirm('Do you want to pay $' + price.toFixed(2) + ' for this hair using your account balance?')) {
+            // 显示加载状态
+            this.disabled = true;
+            this.innerHTML = 'Processing...';
+            
+            // 显示加载弹窗
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = '<div class="spinner"></div><p>Transaction processing...</p>';
+            loadingOverlay.style.display = 'flex';
+            document.body.appendChild(loadingOverlay);
+            
+            // 发送支付请求
+            fetch('balance_payment_api.php?action=process_hair_payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              credentials: 'same-origin',
+              body: JSON.stringify({
+                hair_id: hairId
+              })
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Network response was not ok');
+              }
+              return response.json();
+            })
+            .then(data => {
+              if (data.success) {
+                // 隐藏加载弹窗
+                if (loadingOverlay) {
+                  loadingOverlay.remove();
+                }
+                
+                // 支付成功
+                alert('Payment successful! Order ID: ' + data.order_id + '\n\nA confirmation email with hair information has been sent to your email address.');
+                
+                // 更新页面上显示的余额
+                const balanceElements = document.querySelectorAll('.user-balance');
+                balanceElements.forEach(el => {
+                  el.textContent = '$' + data.remaining_balance.toFixed(2);
+                });
+                
+                // 重新加载页面以更新状态
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1500);
+              } else {
+                // 隐藏加载弹窗
+                if (loadingOverlay) {
+                  loadingOverlay.remove();
+                }
+                
+                // 支付失败
+                let errorMessage = 'Payment failed';
+                
+                // 检查是否为邮件限流错误
+                if (data.error && (data.error.includes('Failed to send confirmation email') || data.error.includes('rate limited'))) {
+                  errorMessage = 'Purchase interval too short, please try again later';
+                } else if (data.error) {
+                  errorMessage = 'Payment failed: ' + data.error;
+                }
+                
+                alert(errorMessage);
+                
+                // 恢复按钮状态
+                this.disabled = false;
+                this.innerHTML = 'Pay with Balance';
+              }
+            })
+            .catch(error => {
+              // 隐藏加载弹窗
+              if (loadingOverlay) {
+                loadingOverlay.remove();
+              }
+              
+              console.error('Error:', error);
+              alert('An error occurred during payment processing. Please try again.');
+              
+              // 恢复按钮状态
+              this.disabled = false;
+              this.innerHTML = 'Pay with Balance';
+            });
+          }
+        });
+      }
+    });
   </script>
   
 </body>
