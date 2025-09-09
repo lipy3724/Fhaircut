@@ -111,59 +111,87 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
     <title>Activate Your Account - HairCut Network</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 确保页面可以滚动 */
+        /* 取消页面滚动 */
         html, body {
-            height: 100%;
+            height: 100vh;
             margin: 0;
             padding: 0;
-            overflow-x: hidden;
-            overflow-y: auto;
+            overflow: hidden;
         }
         
         body {
-            min-height: 100vh;
+            height: 100vh;
             background: #ffffff;
         }
         
         .activation-container {
             max-width: 600px;
-            margin: 20px auto 50px auto;
+            margin: 40px auto;
             padding: 30px;
             background-color: #fff;
             border-radius: 8px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             text-align: center;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+        
+        /* 自定义滚动条样式 */
+        .activation-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .activation-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .activation-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .activation-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* 内容包装器，确保底部有足够空间 */
+        .activation-content {
+            padding-bottom: 20px;
         }
         
         /* 响应式设计 - 移动设备上的边距调整 */
         @media (max-width: 768px) {
             .activation-container {
-                margin: 10px;
+                margin: 20px 10px;
                 padding: 20px;
+                max-height: calc(100vh - 40px);
             }
         }
         .activation-header {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .activation-header h1 {
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .activation-header p {
             color: #666;
             font-size: 16px;
         }
         .activation-details {
-            margin: 30px 0;
-            padding: 20px;
+            margin: 20px 0;
+            padding: 15px;
             background-color: #f9f9f9;
             border-radius: 5px;
         }
         .activation-details .detail-row {
             display: flex;
             justify-content: space-between;
-            margin: 10px 0;
-            padding: 5px 0;
+            margin: 8px 0;
+            padding: 3px 0;
             border-bottom: 1px solid #eee;
         }
         .activation-details .detail-row:last-child {
@@ -184,8 +212,8 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
             font-size: 18px;
         }
         .payment-methods {
-            margin: 30px 0;
-            padding: 20px;
+            margin: 20px 0;
+            padding: 15px;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             background-color: #fff;
@@ -194,7 +222,7 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
         .paypal-container, 
         .googlepay-container,
         .applepay-container {
-            margin: 15px 0;
+            margin: 10px 0;
         }
         
         .applepay-container {
@@ -242,7 +270,7 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
             margin: 0;
         }
         .note {
-            margin-top: 30px;
+            margin-top: 20px;
             font-size: 14px;
             color: #777;
         }
@@ -276,6 +304,7 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
 </head>
 <body>
     <div class="activation-container">
+        <div class="activation-content">
         <div class="activation-header">
             <h1><?php echo htmlspecialchars($activation_settings['activation_title']); ?></h1>
             <p><?php echo htmlspecialchars($activation_settings['activation_subtitle']); ?></p>
@@ -305,10 +334,10 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
             </div>
         </div>
         
-        <div id="payment-message" style="margin-top: 20px; padding: 10px; border-radius: 5px; display: none;"></div>
+        <div id="payment-message" style="margin-top: 15px; padding: 10px; border-radius: 5px; display: none;"></div>
         
         <!-- Skip Activation Button -->
-        <div class="skip-activation-container" style="margin: 20px 0;">
+        <div class="skip-activation-container" style="margin: 15px 0;">
             <button type="button" id="skip-activation-btn" class="skip-activation-btn">
                 Skip Activation
             </button>
@@ -316,6 +345,7 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
         
         <div class="note">
             <p><?php echo htmlspecialchars($activation_settings['activation_note']); ?></p>
+        </div>
         </div>
     </div>
     
