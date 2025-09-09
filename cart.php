@@ -1769,26 +1769,26 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                 // 获取PayPal的Google Pay配置来检查可用性
                 const googlePayConfig = await paypal.Googlepay().config();
                 console.log('PayPal Google Pay config retrieved for cart');
-                
-                const paymentsClient = getGooglePaymentsClient();
-                const isReadyToPayRequest = Object.assign({}, baseRequest);
+            
+            const paymentsClient = getGooglePaymentsClient();
+            const isReadyToPayRequest = Object.assign({}, baseRequest);
                 isReadyToPayRequest.allowedPaymentMethods = googlePayConfig.allowedPaymentMethods;
-                
-                // 检查设备是否支持Google Pay
-                paymentsClient.isReadyToPay(isReadyToPayRequest)
-                    .then(function(response) {
-                        console.log('Google Pay isReadyToPay response:', response);
-                        if (response.result) {
-                            addGooglePayButtonToCart(cartIds, total);
-                        } else {
-                            console.log('Google Pay is not available on this device/browser');
-                            $('#googlepay-button-container').hide();
-                        }
-                    })
-                    .catch(function(err) {
-                        console.error('Error checking Google Pay availability:', err);
+            
+            // 检查设备是否支持Google Pay
+            paymentsClient.isReadyToPay(isReadyToPayRequest)
+                .then(function(response) {
+                    console.log('Google Pay isReadyToPay response:', response);
+                    if (response.result) {
+                        addGooglePayButtonToCart(cartIds, total);
+                    } else {
+                        console.log('Google Pay is not available on this device/browser');
                         $('#googlepay-button-container').hide();
-                    });
+                    }
+                })
+                .catch(function(err) {
+                    console.error('Error checking Google Pay availability:', err);
+                    $('#googlepay-button-container').hide();
+                });
             } catch (error) {
                 console.error('Error initializing Google Pay for cart:', error);
                 $('#googlepay-button-container').hide();
@@ -1827,8 +1827,8 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
         // 处理购物车Google Pay按钮点击
         async function onCartGooglePaymentButtonClicked(cartIds, total, overlay) {
             try {
-                console.log('Cart Google Pay button clicked:', cartIds, total);
-                
+            console.log('Cart Google Pay button clicked:', cartIds, total);
+            
                 // 获取Google Pay支付数据请求
                 let paymentDataRequest;
                 try {
@@ -1885,10 +1885,10 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                 
                 // 设置交易信息
                 paymentDataRequest.transactionInfo = {
-                    totalPriceStatus: 'FINAL',
-                    totalPrice: total.toFixed(2),
-                    currencyCode: 'USD',
-                    countryCode: 'US'
+                            totalPriceStatus: 'FINAL',
+                            totalPrice: total.toFixed(2),
+                            currencyCode: 'USD',
+                            countryCode: 'US'
                 };
                 
                 // 设置商家信息
@@ -1904,7 +1904,7 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                 throw error;
             }
         }
-
+        
         // 购物车支付授权回调
         function onCartPaymentAuthorized(paymentData) {
             console.log('Cart payment authorized:', paymentData);
@@ -1916,16 +1916,16 @@ $currentCategory = isset($_GET['category']) ? intval($_GET['category']) : 0;
                     console.log('Processing cart payment with data:', paymentData);
                     
                     // 模拟支付处理成功
-                    setTimeout(function() {
-                        console.log('Cart payment processing completed');
-                        resolve({ transactionState: 'SUCCESS' });
-                        
-                        // 显示成功消息并刷新
-                        alert('Payment successful!');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
+                setTimeout(function() {
+                    console.log('Cart payment processing completed');
+                    resolve({ transactionState: 'SUCCESS' });
+                    
+                    // 显示成功消息并刷新
+                    alert('Payment successful!');
+                    setTimeout(() => {
+                        window.location.reload();
                     }, 1000);
+                }, 1000);
                 } catch (error) {
                     console.error('Error processing cart payment:', error);
                     reject({ transactionState: 'ERROR', error: error.message });
