@@ -723,8 +723,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         
         // 处理付费视频上传和链接
         $paidVideoPath = isset($_POST['paid_video']) ? trim($_POST['paid_video']) : '';
-        $paidVideoDuration = isset($_POST['paid_video_duration']) ? intval($_POST['paid_video_duration']) : 0;
-        $paidVideoSize = isset($_POST['paid_video_size']) ? intval($_POST['paid_video_size']) : 0;
+        // 将分钟转换为秒
+        $paidVideoDuration = isset($_POST['paid_video_duration']) ? round(floatval($_POST['paid_video_duration']) * 60) : 0;
+        // 将MB转换为字节
+        $paidVideoSize = isset($_POST['paid_video_size']) ? round(floatval($_POST['paid_video_size']) * 1024 * 1024) : 0;
         // 接收前端测得的时长（秒）
         $paidVideoDurationClient = isset($_POST['paid_video_duration_client']) ? intval($_POST['paid_video_duration_client']) : 0;
         // 优先用前端获取的时长
@@ -749,8 +751,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $videos_upload_dir = rtrim($videos_upload_dir, '/') . '/';
             
             // 允许的视频类型
-            $allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska'];
-            $allowed_video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv'];
+            $allowed_video_types = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska', 'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/octet-stream'];
+            $allowed_video_extensions = ['mp4', 'mov', 'avi', 'webm', 'mkv', 'zip', 'rar', '7z'];
             
             // 最大允许的文件大小 (6GB)
             $max_video_size = 6 * 1024 * 1024 * 1024;
@@ -765,7 +767,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     // 检查文件类型
                     $file_extension = strtolower(pathinfo($_FILES['paid_video_file']['name'], PATHINFO_EXTENSION));
                     if (!in_array($file_extension, $allowed_video_extensions)) {
-                        $errors[] = "只允许上传MP4、MOV、AVI、WEBM或MKV格式的视频";
+                        $errors[] = "只允许上传MP4、MOV、AVI、WEBM、MKV或压缩文件(ZIP、RAR、7Z)格式";
                     } else {
                         // 检查文件大小
                         if ($_FILES['paid_video_file']['size'] > $max_video_size) {
@@ -847,7 +849,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         // 检查文件类型
                         $file_extension = strtolower(pathinfo($_FILES['paid_video_file']['name'][$i], PATHINFO_EXTENSION));
                         if (!in_array($file_extension, $allowed_video_extensions)) {
-                            $errors[] = "只允许上传MP4、MOV、AVI、WEBM或MKV格式的视频 (视频" . ($i + 1) . ")";
+                            $errors[] = "只允许上传MP4、MOV、AVI、WEBM、MKV或压缩文件(ZIP、RAR、7Z)格式 (视频" . ($i + 1) . ")";
                             continue;
                         }
                         
@@ -914,7 +916,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         // 处理付费图片打包链接
         $paidPhotosZipPath = isset($_POST['paid_photos_zip']) ? trim($_POST['paid_photos_zip']) : '';
         $paidPhotosCount = isset($_POST['paid_photos_count_manual']) ? intval($_POST['paid_photos_count_manual']) : 0;
-        $paidPhotosTotalSize = isset($_POST['paid_photos_total_size']) ? intval($_POST['paid_photos_total_size']) : 0;
+        // 将MB转换为字节
+        $paidPhotosTotalSize = isset($_POST['paid_photos_total_size']) ? round(floatval($_POST['paid_photos_total_size']) * 1024 * 1024) : 0;
         $paidPhotosFormats = isset($_POST['paid_photos_formats_manual']) ? trim($_POST['paid_photos_formats_manual']) : '';
 
         // 保存手动输入的统计值供后续使用（这些值会在后面的逻辑中被正确处理）
@@ -941,8 +944,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $photos_upload_dir = rtrim($photos_upload_dir, '/') . '/';
             
             // 允许的图片类型
-            $allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            $allowed_photo_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $allowed_photo_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/octet-stream'];
+            $allowed_photo_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'rar', '7z'];
             
             // 最大允许的文件大小 (6GB)
             $max_photo_size = 6 * 1024 * 1024 * 1024;
@@ -975,7 +978,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     // 检查文件类型
                     $file_extension = strtolower(pathinfo($_FILES['paid_photos_file']['name'], PATHINFO_EXTENSION));
                     if (!in_array($file_extension, $allowed_photo_extensions)) {
-                        $errors[] = "只允许上传JPG、PNG、GIF或WEBP格式的图片";
+                        $errors[] = "只允许上传JPG、PNG、GIF、WEBP或压缩文件(ZIP、RAR、7Z)格式";
                     } else {
                         // 检查文件大小
                         if ($_FILES['paid_photos_file']['size'] > $max_photo_size) {
@@ -1027,7 +1030,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         // 检查文件类型
                         $file_extension = strtolower(pathinfo($_FILES['paid_photos_file']['name'][$i], PATHINFO_EXTENSION));
                         if (!in_array($file_extension, $allowed_photo_extensions)) {
-                            $errors[] = "只允许上传JPG、PNG、GIF或WEBP格式的图片 (图片" . ($i + 1) . ")";
+                            $errors[] = "只允许上传JPG、PNG、GIF、WEBP或压缩文件(ZIP、RAR、7Z)格式 (图片" . ($i + 1) . ")";
                             continue;
                         }
                         
@@ -1398,33 +1401,81 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             }
         }
         
-        // 如果是编辑模式，保留未更改的其他图片
+        // 如果是编辑模式，处理图片删除和排序
         if ($action == 'edit_product') {
-            // 处理游客图片
+            // 处理图片删除
+            // 游客图片
             for ($i = 1; $i <= 4; $i++) {
                 $field = 'image' . ($i > 1 ? $i : '');
+                $delete_field = 'delete_' . $field;
+                
                 // 确保product_data中的字段存在
                 if (!isset($product_data[$field])) {
                     $product_data[$field] = '';
                 }
                 
-                // 如果没有上传新图片，保留原有图片
-                if (empty($image_paths[$field])) {
+                // 检查是否标记为删除
+                if (isset($_POST[$delete_field]) && $_POST[$delete_field] == '1') {
+                    // 如果标记为删除，清空图片路径
+                    $image_paths[$field] = '';
+                    
+                    // 如果存在物理文件，删除它
+                    if (!empty($product_data[$field])) {
+                        $file_path = '../' . $product_data[$field];
+                        if (file_exists($file_path)) {
+                            @unlink($file_path);
+                        }
+                    }
+                }
+                // 如果没有标记为删除且没有上传新图片，保留原有图片
+                elseif (empty($image_paths[$field])) {
                     $image_paths[$field] = $product_data[$field];
                 }
             }
             
-            // 处理会员图片
+            // 会员图片
             for ($i = 1; $i <= 6; $i++) {
                 $field = 'member_image' . $i;
+                $delete_field = 'delete_' . $field;
+                
                 // 确保product_data中的字段存在
                 if (!isset($product_data[$field])) {
                     $product_data[$field] = '';
                 }
                 
-                // 如果没有上传新图片，保留原有图片
-                if (empty($image_paths[$field])) {
+                // 检查是否标记为删除
+                if (isset($_POST[$delete_field]) && $_POST[$delete_field] == '1') {
+                    // 如果标记为删除，清空图片路径
+                    $image_paths[$field] = '';
+                    
+                    // 如果存在物理文件，删除它
+                    if (!empty($product_data[$field])) {
+                        $file_path = '../' . $product_data[$field];
+                        if (file_exists($file_path)) {
+                            @unlink($file_path);
+                        }
+                    }
+                }
+                // 如果没有标记为删除且没有上传新图片，保留原有图片
+                elseif (empty($image_paths[$field])) {
                     $image_paths[$field] = $product_data[$field];
+                }
+            }
+            
+            // 处理图片排序
+            if (isset($_POST['swap_images']) && !empty($_POST['swap_images'])) {
+                $swaps = explode(',', $_POST['swap_images']);
+                
+                foreach ($swaps as $swap) {
+                    list($source, $target) = explode(':', $swap);
+                    
+                    // 确保两个字段都存在
+                    if (isset($image_paths[$source]) && isset($image_paths[$target])) {
+                        // 交换两个图片的路径
+                        $temp = $image_paths[$source];
+                        $image_paths[$source] = $image_paths[$target];
+                        $image_paths[$target] = $temp;
+                    }
                 }
             }
             
@@ -2662,8 +2713,8 @@ if ($result) {
                         <!-- 第一行：上传部分 -->
                         <div class="form-group">
                             <label for="paid_video_file">付费视频上传</label>
-                            <input type="file" id="paid_video_file" name="paid_video_file" accept="video/*" onchange="previewVideos(this, 'video-preview-container')">
-                            <div class="help-text">支持格式：MP4, MOV, AVI, WEBM等。最大文件大小：6GB</div>
+                            <input type="file" id="paid_video_file" name="paid_video_file" accept="video/*,.zip,.rar,.7z" onchange="previewVideos(this, 'video-preview-container')">
+                            <div class="help-text">支持格式：MP4, MOV, AVI, WEBM等视频格式，以及ZIP, RAR, 7Z等压缩文件格式。最大文件大小：6GB</div>
                             <div id="video-preview-container" class="image-preview-container">
                                 <?php if (!empty($product_data['paid_video'])): ?>
                                 <div class="preview-title">当前视频：</div>
@@ -2680,8 +2731,8 @@ if ($result) {
                         
                         <div class="form-group">
                             <label for="paid_photos_file">付费图片上传</label>
-                            <input type="file" id="paid_photos_file" name="paid_photos_file[]" accept="image/*" multiple onchange="previewImages(this, 'photos-preview-container')">
-                            <div class="help-text">支持格式：JPG, PNG, GIF, WEBP等。最大文件大小：6GB。支持多选文件一次上传，会自动压缩存储。</div>
+                            <input type="file" id="paid_photos_file" name="paid_photos_file[]" accept="image/*,.zip,.rar,.7z" multiple onchange="previewImages(this, 'photos-preview-container')">
+                            <div class="help-text">支持格式：JPG, PNG, GIF, WEBP等图片格式，以及ZIP, RAR, 7Z等压缩文件格式。最大文件大小：6GB。支持多选文件一次上传，会自动压缩存储。</div>
                             <div id="photos-preview-container" class="image-preview-container"></div>
                         </div>
                         
@@ -2705,27 +2756,27 @@ if ($result) {
                      <div class="form-grid">
                          <div class="form-group">
                             <label for="paid_photos_count_manual">付费图片数量</label>
-                            <input type="number" id="paid_photos_count_manual" name="paid_photos_count_manual" min="0" value="<?php echo intval($product_data['paid_photos_count'] ?? 0); ?>" readonly>
-                            <div class="help-text">上传图片后自动统计</div>
+                            <input type="number" id="paid_photos_count_manual" name="paid_photos_count_manual" min="0" value="<?php echo intval($product_data['paid_photos_count'] ?? 0); ?>">
+                            <div class="help-text">请手动输入图片数量</div>
                         </div>
                          <div class="form-group">
                             <label for="paid_photos_formats_manual">付费图片格式</label>
-                            <input type="text" id="paid_photos_formats_manual" name="paid_photos_formats_manual" value="<?php echo htmlspecialchars($product_data['paid_photos_formats'] ?? ''); ?>" placeholder="例如：png,jpg,webp" readonly>
-                            <div class="help-text">上传图片后自动统计</div>
+                            <input type="text" id="paid_photos_formats_manual" name="paid_photos_formats_manual" value="<?php echo htmlspecialchars($product_data['paid_photos_formats'] ?? ''); ?>" placeholder="例如：png,jpg,webp">
+                            <div class="help-text">请手动输入图片格式，用逗号分隔</div>
                         </div>
                          <div class="form-group">
-                            <label for="paid_photos_total_size">付费图片总大小（字节）</label>
-                            <input type="number" id="paid_photos_total_size" name="paid_photos_total_size" min="0" value="<?php echo intval($product_data['paid_photos_total_size'] ?? 0); ?>" readonly>
-                            <div class="help-text" id="paid_photos_size_display">当前值: <?php $isz=intval($product_data['paid_photos_total_size'] ?? 0); $u=['B','KB','MB','GB']; $i=0;$n=$isz; while($n>=1024&&$i<count($u)-1){$n/=1024;$i++;} echo $isz?number_format($n,$n>=100?0:2).' '.$u[$i]:'—'; ?></div>
+                            <label for="paid_photos_total_size">付费图片总大小（MB）</label>
+                            <input type="number" id="paid_photos_total_size" name="paid_photos_total_size" min="0" step="0.01" value="<?php echo isset($product_data['paid_photos_total_size']) ? round(intval($product_data['paid_photos_total_size']) / (1024*1024), 2) : 0; ?>">
+                            <div class="help-text">请手动输入图片总大小（MB）</div>
                         </div>
                          <div class="form-group">
-                            <label for="paid_video_size">付费视频大小（字节）</label>
-                            <input type="number" id="paid_video_size" name="paid_video_size" min="0" value="<?php echo intval($product_data['paid_video_size'] ?? 0); ?>">
-                            <div class="help-text">当前值: <?php $vs=intval($product_data['paid_video_size'] ?? 0); $u=['B','KB','MB','GB']; $i=0;$n=$vs; while($n>=1024&&$i<count($u)-1){$n/=1024;$i++;} echo $vs?number_format($n,$n>=100?0:2).' '.$u[$i]:'—'; ?></div>
+                            <label for="paid_video_size">付费视频大小（MB）</label>
+                            <input type="number" id="paid_video_size" name="paid_video_size" min="0" step="0.01" value="<?php echo isset($product_data['paid_video_size']) ? round(intval($product_data['paid_video_size']) / (1024*1024), 2) : 0; ?>">
+                            <div class="help-text">请手动输入视频大小（MB）</div>
                          </div>
                          <div class="form-group">
-                            <label for="paid_video_duration">付费视频时长（秒）</label>
-                            <input type="number" id="paid_video_duration" name="paid_video_duration" min="0" value="<?php echo intval($product_data['paid_video_duration'] ?? 0); ?>">
+                            <label for="paid_video_duration">付费视频时长（分钟）</label>
+                            <input type="number" id="paid_video_duration" name="paid_video_duration" min="0" step="0.01" value="<?php echo isset($product_data['paid_video_duration']) ? round(intval($product_data['paid_video_duration']) / 60, 2) : 0; ?>">
                          </div>
                      </div>
                      
@@ -2735,23 +2786,93 @@ if ($result) {
                                   <?php if ($edit_mode): ?>
                 <fieldset class="span-3">
                     <legend>当前游客图片（带水印）</legend>
-                    <div class="current-images">
-                        <?php if (!empty($product_data['image'])): ?><div class="image-item"><p>主图片 (游客可见)</p><img src="../<?php echo htmlspecialchars($product_data['image']); ?>" alt="当前产品主图片" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['image2'])): ?><div class="image-item"><p>游客图片2（带水印）</p><img src="../<?php echo htmlspecialchars($product_data['image2']); ?>" alt="当前游客图片2" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['image3'])): ?><div class="image-item"><p>游客图片3（带水印）</p><img src="../<?php echo htmlspecialchars($product_data['image3']); ?>" alt="当前游客图片3" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['image4'])): ?><div class="image-item"><p>游客图片4（带水印）</p><img src="../<?php echo htmlspecialchars($product_data['image4']); ?>" alt="当前游客图片4" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
+                    <div class="current-images" id="current-visitor-images">
+                        <?php if (!empty($product_data['image'])): ?>
+                            <div class="image-item" data-image-field="image">
+                                <p>主图片 (游客可见)</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['image']); ?>" alt="当前产品主图片" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('image')">×</button>
+                                <input type="hidden" name="delete_image" id="delete_image" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['image2'])): ?>
+                            <div class="image-item" data-image-field="image2">
+                                <p>游客图片2（带水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['image2']); ?>" alt="当前游客图片2" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('image2')">×</button>
+                                <input type="hidden" name="delete_image2" id="delete_image2" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['image3'])): ?>
+                            <div class="image-item" data-image-field="image3">
+                                <p>游客图片3（带水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['image3']); ?>" alt="当前游客图片3" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('image3')">×</button>
+                                <input type="hidden" name="delete_image3" id="delete_image3" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['image4'])): ?>
+                            <div class="image-item" data-image-field="image4">
+                                <p>游客图片4（带水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['image4']); ?>" alt="当前游客图片4" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('image4')">×</button>
+                                <input type="hidden" name="delete_image4" id="delete_image4" value="0">
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </fieldset>
                 
                 <fieldset class="span-3">
                     <legend>当前会员图片（无水印）</legend>
-                    <div class="current-images">
-                        <?php if (!empty($product_data['member_image1'])): ?><div class="image-item"><p>会员图片1（无水印）</p><img src="../<?php echo htmlspecialchars($product_data['member_image1']); ?>" alt="当前会员图片1" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['member_image2'])): ?><div class="image-item"><p>会员图片2（无水印）</p><img src="../<?php echo htmlspecialchars($product_data['member_image2']); ?>" alt="当前会员图片2" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['member_image3'])): ?><div class="image-item"><p>会员图片3（无水印）</p><img src="../<?php echo htmlspecialchars($product_data['member_image3']); ?>" alt="当前会员图片3" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['member_image4'])): ?><div class="image-item"><p>会员图片4（无水印）</p><img src="../<?php echo htmlspecialchars($product_data['member_image4']); ?>" alt="当前会员图片4" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['member_image5'])): ?><div class="image-item"><p>会员图片5（无水印）</p><img src="../<?php echo htmlspecialchars($product_data['member_image5']); ?>" alt="当前会员图片5" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
-                        <?php if (!empty($product_data['member_image6'])): ?><div class="image-item"><p>会员图片6（无水印）</p><img src="../<?php echo htmlspecialchars($product_data['member_image6']); ?>" alt="当前会员图片6" style="max-width: 150px; max-height: 150px;"></div><?php endif; ?>
+                    <div class="current-images" id="current-member-images">
+                        <?php if (!empty($product_data['member_image1'])): ?>
+                            <div class="image-item" data-image-field="member_image1">
+                                <p>会员图片1（无水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['member_image1']); ?>" alt="当前会员图片1" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image1')">×</button>
+                                <input type="hidden" name="delete_member_image1" id="delete_member_image1" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['member_image2'])): ?>
+                            <div class="image-item" data-image-field="member_image2">
+                                <p>会员图片2（无水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['member_image2']); ?>" alt="当前会员图片2" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image2')">×</button>
+                                <input type="hidden" name="delete_member_image2" id="delete_member_image2" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['member_image3'])): ?>
+                            <div class="image-item" data-image-field="member_image3">
+                                <p>会员图片3（无水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['member_image3']); ?>" alt="当前会员图片3" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image3')">×</button>
+                                <input type="hidden" name="delete_member_image3" id="delete_member_image3" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['member_image4'])): ?>
+                            <div class="image-item" data-image-field="member_image4">
+                                <p>会员图片4（无水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['member_image4']); ?>" alt="当前会员图片4" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image4')">×</button>
+                                <input type="hidden" name="delete_member_image4" id="delete_member_image4" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['member_image5'])): ?>
+                            <div class="image-item" data-image-field="member_image5">
+                                <p>会员图片5（无水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['member_image5']); ?>" alt="当前会员图片5" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image5')">×</button>
+                                <input type="hidden" name="delete_member_image5" id="delete_member_image5" value="0">
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($product_data['member_image6'])): ?>
+                            <div class="image-item" data-image-field="member_image6">
+                                <p>会员图片6（无水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data['member_image6']); ?>" alt="当前会员图片6" style="max-width: 150px; max-height: 150px;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image6')">×</button>
+                                <input type="hidden" name="delete_member_image6" id="delete_member_image6" value="0">
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </fieldset>
                 <?php endif; ?>
@@ -2847,13 +2968,13 @@ if ($result) {
                                 <legend>付费图片/视频</legend>
                     <div class="form-group">
                                     <label for="paid_video_{index}">视频上传</label>
-                                    <input type="file" id="paid_video_{index}" name="products[{index}][paid_video]" accept="video/*" onchange="updateVideoStats(this, {index})">
+                                    <input type="file" id="paid_video_{index}" name="products[{index}][paid_video]" accept="video/*,.zip,.rar,.7z" onchange="updateVideoStats(this, {index})">
                     </div>
                                 
                                 <div class="form-group">
                                     <label for="paid_photos_{index}">付费图片上传</label>
-                                    <input type="file" id="paid_photos_{index}" name="products[{index}][paid_photos][]" accept="image/*" multiple onchange="updatePhotoStats(this, {index})">
-                                    <div class="help-text">多选图片，将自动压缩为zip包</div>
+                                    <input type="file" id="paid_photos_{index}" name="products[{index}][paid_photos][]" accept="image/*,.zip,.rar,.7z" multiple onchange="updatePhotoStats(this, {index})">
+                                    <div class="help-text">支持图片格式和压缩文件(ZIP、RAR、7Z)格式，多选图片将自动压缩为zip包</div>
                         </div>
                                 
                                 <!-- 统计信息 -->
@@ -2861,35 +2982,35 @@ if ($result) {
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px;">
                                         <div class="form-group" style="margin-bottom: 5px; background-color: #fff;">
                                             <label for="paid_photos_count_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费图片数量</label>
-                                            <input type="number" id="paid_photos_count_{index}" name="products[{index}][paid_photos_count]" value="0" readonly style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
-                                            <div class="help-text" style="font-size: 11px; color: #777; height: 15px;">上传图片后自动统计</div>
+                                            <input type="number" id="paid_photos_count_{index}" name="products[{index}][paid_photos_count]" value="0" style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
+                                            <div class="help-text" style="font-size: 11px; color: #777; height: 15px;">请手动输入图片数量</div>
                         </div>
                                         
                                         <div class="form-group" style="margin-bottom: 5px; background-color: #fff;">
                                             <label for="paid_photos_formats_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费图片格式</label>
-                                            <input type="text" id="paid_photos_formats_{index}" name="products[{index}][paid_photos_formats]" placeholder="例如：png,jpg,webp" readonly style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
-                                            <div class="help-text" style="font-size: 11px; color: #777; height: 15px;">上传图片后自动统计</div>
+                                            <input type="text" id="paid_photos_formats_{index}" name="products[{index}][paid_photos_formats]" placeholder="例如：png,jpg,webp" style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
+                                            <div class="help-text" style="font-size: 11px; color: #777; height: 15px;">请手动输入图片格式，用逗号分隔</div>
                     </div>
                         </div>
                                     
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px;">
                                         <div class="form-group" style="margin-bottom: 5px; background-color: #fff;">
-                                            <label for="paid_photos_total_size_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费图片总大小（字节）</label>
-                                            <input type="number" id="paid_photos_total_size_{index}" name="products[{index}][paid_photos_total_size]" value="0" readonly style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
-                                            <div class="help-text" id="paid_photos_size_display_{index}" style="font-size: 11px; color: #777; height: 15px;">当前值: —</div>
+                                            <label for="paid_photos_total_size_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费图片总大小（MB）</label>
+                                            <input type="number" id="paid_photos_total_size_{index}" name="products[{index}][paid_photos_total_size]" value="0" step="0.01" style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
+                                            <div class="help-text" id="paid_photos_size_display_{index}" style="font-size: 11px; color: #777; height: 15px;">请手动输入图片总大小（MB）</div>
                         </div>
                                         
                                         <div class="form-group" style="margin-bottom: 5px; background-color: #fff;">
-                                            <label for="paid_video_size_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费视频大小（字节）</label>
-                                            <input type="number" id="paid_video_size_{index}" name="products[{index}][paid_video_size]" value="0" readonly style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
-                                            <div class="help-text" id="paid_video_size_display_{index}" style="font-size: 11px; color: #777; height: 15px;">当前值: —</div>
+                                            <label for="paid_video_size_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费视频大小（MB）</label>
+                                            <input type="number" id="paid_video_size_{index}" name="products[{index}][paid_video_size]" value="0" step="0.01" style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
+                                            <div class="help-text" id="paid_video_size_display_{index}" style="font-size: 11px; color: #777; height: 15px;">请手动输入视频大小（MB）</div>
                     </div>
                         </div>
                                     
                                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 5px;">
                                         <div class="form-group" style="margin-bottom: 5px; background-color: #fff;">
-                                            <label for="paid_video_duration_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费视频时长（秒）</label>
-                                            <input type="number" id="paid_video_duration_{index}" name="products[{index}][paid_video_duration]" value="0" readonly style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
+                                            <label for="paid_video_duration_{index}" style="font-size: 12px; display: block; margin-bottom: 2px;">付费视频时长（分钟）</label>
+                                            <input type="number" id="paid_video_duration_{index}" name="products[{index}][paid_video_duration]" value="0" step="0.01" style="height: 28px; padding: 2px 5px; width: 100%; background-color: #fff; border: 1px solid #ddd;">
                                             <div class="help-text" style="font-size: 11px; color: #777; height: 15px;"></div>
                         </div>
                                         <div class="form-group" style="margin-bottom: 5px; background-color: #fff;">
@@ -2916,6 +3037,24 @@ if ($result) {
                 document.getElementById(`paid_photos_total_size_${index}`).value = "0";
                 document.getElementById(`paid_photos_size_display_${index}`).innerHTML = "当前值: —";
                 return;
+            }
+            
+            // 检查是否是单个压缩文件
+            if (input.files.length === 1) {
+                const file = input.files[0];
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                
+                if (['zip', 'rar', '7z'].includes(fileExt)) {
+                    // 如果是压缩文件，直接更新统计信息
+                    document.getElementById(`paid_photos_count_${index}`).value = "1";
+                    document.getElementById(`paid_photos_formats_${index}`).value = fileExt;
+                    document.getElementById(`paid_photos_total_size_${index}`).value = file.size;
+                    
+                    // 更新可读的大小显示
+                    const sizeDisplay = formatFileSize(file.size);
+                    document.getElementById(`paid_photos_size_display_${index}`).innerHTML = `当前值: ${sizeDisplay}`;
+                    return;
+                }
             }
             
             // 统计图片数量
@@ -2957,13 +3096,21 @@ if ($result) {
             }
             
             const file = input.files[0]; // 只取第一个视频文件
+            const fileExt = file.name.split('.').pop().toLowerCase();
             
             // 更新视频大小
-            document.getElementById(`paid_video_size_${index}`).value = file.size;
+            // 将字节转换为MB
+            document.getElementById(`paid_video_size_${index}`).value = (file.size / (1024 * 1024)).toFixed(2);
             
             // 更新可读的大小显示
             const sizeDisplay = formatFileSize(file.size);
             document.getElementById(`paid_video_size_display_${index}`).innerHTML = `当前值: ${sizeDisplay}`;
+            
+            // 如果是压缩文件，不尝试获取视频时长
+            if (['zip', 'rar', '7z'].includes(fileExt)) {
+                document.getElementById(`paid_video_duration_${index}`).value = "0";
+                return;
+            }
             
             // 尝试获取视频时长
             try {
@@ -2972,7 +3119,8 @@ if ($result) {
                 
                 videoElement.onloadedmetadata = function() {
                     const duration = Math.round(videoElement.duration);
-                    document.getElementById(`paid_video_duration_${index}`).value = duration;
+                    // 将秒转换为分钟
+                    document.getElementById(`paid_video_duration_${index}`).value = (duration / 60).toFixed(2);
                     URL.revokeObjectURL(videoElement.src);
                 };
                 
@@ -3008,6 +3156,48 @@ if ($result) {
             previewContainer.innerHTML = '';
             
             if (input.files && input.files.length > 0) {
+                const file = input.files[0];
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                
+                // 检查是否是压缩文件
+                if (['zip', 'rar', '7z'].includes(fileExt)) {
+                    // 如果是压缩文件，只显示文件信息，不显示预览
+                    const previewTitle = document.createElement('div');
+                    previewTitle.className = 'preview-title';
+                    previewTitle.textContent = '已选择的视频：';
+                    previewContainer.appendChild(previewTitle);
+                    
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    
+                    // 显示压缩包图标
+                    const zipIcon = document.createElement('div');
+                    zipIcon.className = 'video-icon';
+                    zipIcon.innerHTML = '<i class="fa fa-file-archive-o"></i>';
+                    previewItem.appendChild(zipIcon);
+                    
+                    const filename = document.createElement('div');
+                    filename.className = 'preview-filename';
+                    filename.textContent = file.name;
+                    previewItem.appendChild(filename);
+                    
+                    // 显示文件大小
+                    const fileSize = document.createElement('div');
+                    fileSize.className = 'preview-filesize';
+                    fileSize.textContent = formatFileSize(file.size);
+                    previewItem.appendChild(fileSize);
+                    
+                    // 添加提示信息
+                    const zipInfo = document.createElement('div');
+                    zipInfo.className = 'preview-info';
+                    zipInfo.textContent = '压缩文件不支持预览';
+                    previewItem.appendChild(zipInfo);
+                    
+                    previewContainer.appendChild(previewItem);
+                    
+                    return;
+                }
+                
                 const previewTitle = document.createElement('div');
                 previewTitle.className = 'preview-title';
                 previewTitle.textContent = '已选择的视频：';
@@ -4101,6 +4291,46 @@ document.addEventListener('DOMContentLoaded', function() {
     display: flex;
     flex-direction: column;
     align-items: center;
+    position: relative;
+    cursor: move;
+    transition: all 0.2s ease;
+}
+
+.preview-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    z-index: 1000;
+}
+
+.preview-item.drag-over {
+    border: 2px dashed #4a90e2;
+    background-color: #f0f7ff;
+}
+
+.delete-image-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #ff4d4f;
+    color: white;
+    border: none;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    z-index: 10;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.delete-image-btn:hover {
+    background-color: #ff7875;
+    transform: scale(1.1);
 }
 
 .preview-image {
@@ -4222,6 +4452,36 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 4px;
     text-align: center;
     width: 180px;
+    position: relative;
+    cursor: move;
+    transition: all 0.2s ease;
+}
+
+.image-item.marked-for-deletion {
+    opacity: 0.5;
+    background-color: #ffeeee;
+    border: 1px dashed #ff8888;
+}
+
+.image-item.marked-for-deletion img {
+    filter: grayscale(100%);
+}
+
+.image-item.marked-for-deletion p::after {
+    content: " (已标记删除)";
+    color: #ff4d4f;
+    font-weight: bold;
+}
+
+.image-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    z-index: 1000;
+}
+
+.image-item.drag-over {
+    border: 2px dashed #4a90e2;
+    background-color: #f0f7ff;
 }
 
 .image-item p {
@@ -4699,6 +4959,64 @@ function previewImages(input, previewContainerId) {
     previewContainer.innerHTML = ''; // 清空预览区域
     
     if (input.files && input.files.length > 0) {
+        // 检查是否是压缩文件
+        // 如果是单个文件且是压缩文件，则不显示预览
+        if (input.files.length === 1) {
+            const file = input.files[0];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            if (['zip', 'rar', '7z'].includes(fileExt)) {
+                // 如果是压缩文件，只显示文件信息，不显示预览
+                const previewTitle = document.createElement('div');
+                previewTitle.className = 'preview-title';
+                previewTitle.textContent = '图片预览:';
+                previewContainer.appendChild(previewTitle);
+                
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                
+                // 显示压缩包图标
+                const zipIcon = document.createElement('div');
+                zipIcon.className = 'video-icon';
+                zipIcon.innerHTML = '<i class="fa fa-file-archive-o"></i>';
+                previewItem.appendChild(zipIcon);
+                
+                const filename = document.createElement('div');
+                filename.className = 'preview-filename';
+                filename.textContent = file.name;
+                previewItem.appendChild(filename);
+                
+                // 显示文件大小
+                const fileSize = document.createElement('div');
+                fileSize.className = 'preview-filesize';
+                fileSize.textContent = formatFileSize(file.size);
+                previewItem.appendChild(fileSize);
+                
+                // 添加提示信息
+                const zipInfo = document.createElement('div');
+                zipInfo.className = 'preview-info';
+                zipInfo.textContent = '压缩文件不支持预览';
+                previewItem.appendChild(zipInfo);
+                
+                previewContainer.appendChild(previewItem);
+                
+                // 更新统计字段
+                if (previewContainerId === 'photos-preview-container') {
+                    if (document.getElementById('paid_photos_count_manual')) {
+                        document.getElementById('paid_photos_count_manual').value = 1;
+                    }
+                    if (document.getElementById('paid_photos_formats_manual')) {
+                        document.getElementById('paid_photos_formats_manual').value = fileExt;
+                    }
+                    if (document.getElementById('paid_photos_total_size')) {
+                        document.getElementById('paid_photos_total_size').value = file.size;
+                    }
+                }
+                
+                return;
+            }
+        }
+        
         // 创建预览标题
         const previewTitle = document.createElement('div');
         previewTitle.className = 'preview-title';
@@ -4718,6 +5036,16 @@ function previewImages(input, previewContainerId) {
         // 遍历所有选择的文件
         for (let i = 0; i < input.files.length; i++) {
             const file = input.files[i];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            // 跳过压缩文件的预览
+            if (['zip', 'rar', '7z'].includes(fileExt)) {
+                // 统计文件大小和格式
+                totalSize += file.size;
+                formats.add(fileExt);
+                imageCount++;
+                continue;
+            }
             
             // 检查是否是图片
             if (!file.type.startsWith('image/')) {
@@ -4731,18 +5059,66 @@ function previewImages(input, previewContainerId) {
             totalSize += file.size;
             
             // 统计文件格式
-            const fileExt = file.name.split('.').pop().toLowerCase();
             if (fileExt) formats.add(fileExt);
             
             // 创建预览项
             const previewItem = document.createElement('div');
             previewItem.className = 'preview-item';
+            previewItem.setAttribute('data-file-index', i);
+            previewItem.setAttribute('draggable', 'true');
+            
+            // 添加拖拽事件监听
+            previewItem.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', i);
+                this.classList.add('dragging');
+            });
+            
+            previewItem.addEventListener('dragend', function() {
+                this.classList.remove('dragging');
+            });
+            
+            previewItem.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+            
+            previewItem.addEventListener('dragenter', function() {
+                this.classList.add('drag-over');
+            });
+            
+            previewItem.addEventListener('dragleave', function() {
+                this.classList.remove('drag-over');
+            });
+            
+            previewItem.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                const targetIndex = parseInt(this.getAttribute('data-file-index'));
+                
+                if (sourceIndex !== targetIndex) {
+                    // 重新排序文件
+                    reorderFiles(input, sourceIndex, targetIndex, previewContainerId);
+                }
+                
+                this.classList.remove('drag-over');
+            });
             
             // 创建图片元素
             const img = document.createElement('img');
             img.className = 'preview-image';
             img.file = file;
             previewItem.appendChild(img);
+            
+            // 创建删除按钮
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-image-btn';
+            deleteButton.innerHTML = '×';
+            deleteButton.title = '删除图片';
+            deleteButton.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                removeFile(input, i, previewContainerId);
+            };
+            previewItem.appendChild(deleteButton);
             
             // 创建文件名显示
             const fileNameElement = document.createElement('div');
@@ -4812,6 +5188,50 @@ function formatFileSize(bytes) {
         size.toFixed(2) + ' ' + units[i];
 }
 
+// 删除文件
+function removeFile(input, index, previewContainerId) {
+    if (!input.files || input.files.length === 0) return;
+    
+    // 创建一个新的 FileList 对象（不包含被删除的文件）
+    const dt = new DataTransfer();
+    
+    for (let i = 0; i < input.files.length; i++) {
+        if (i !== index) {
+            dt.items.add(input.files[i]);
+        }
+    }
+    
+    // 更新 input 的 files 属性
+    input.files = dt.files;
+    
+    // 重新生成预览
+    previewImages(input, previewContainerId);
+}
+
+// 重新排序文件
+function reorderFiles(input, sourceIndex, targetIndex, previewContainerId) {
+    if (!input.files || input.files.length === 0) return;
+    
+    // 创建一个新的 FileList 对象
+    const dt = new DataTransfer();
+    const files = Array.from(input.files);
+    
+    // 移动文件位置
+    const movedFile = files.splice(sourceIndex, 1)[0];
+    files.splice(targetIndex, 0, movedFile);
+    
+    // 重新添加所有文件
+    for (let i = 0; i < files.length; i++) {
+        dt.items.add(files[i]);
+    }
+    
+    // 更新 input 的 files 属性
+    input.files = dt.files;
+    
+    // 重新生成预览
+    previewImages(input, previewContainerId);
+}
+
 function updatePhotoStats(input, index) {
     const countField = document.getElementById('paid_photos_count_' + index);
     const sizeField = document.getElementById('paid_photos_size_' + index);
@@ -4845,7 +5265,171 @@ function updatePhotoStats(input, index) {
 }
 
 // 页面加载完成后初始化编辑模式的图片统计
+// 标记图片为删除
+function markImageForDeletion(fieldName) {
+    // 设置隐藏字段值为1，表示需要删除
+    const deleteField = document.getElementById('delete_' + fieldName);
+    if (deleteField) {
+        deleteField.value = '1';
+    }
+    
+    // 视觉上标记该图片为已删除状态
+    const imageItem = document.querySelector(`[data-image-field="${fieldName}"]`);
+    if (imageItem) {
+        imageItem.classList.add('marked-for-deletion');
+        
+        // 添加恢复按钮
+        const deleteBtn = imageItem.querySelector('.delete-image-btn');
+        if (deleteBtn) {
+            deleteBtn.innerHTML = '↺';
+            deleteBtn.title = '恢复图片';
+            deleteBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                unmarkImageForDeletion(fieldName);
+            };
+        }
+    }
+}
+
+// 取消标记图片为删除
+function unmarkImageForDeletion(fieldName) {
+    // 设置隐藏字段值为0，表示不需要删除
+    const deleteField = document.getElementById('delete_' + fieldName);
+    if (deleteField) {
+        deleteField.value = '0';
+    }
+    
+    // 移除已删除状态的视觉标记
+    const imageItem = document.querySelector(`[data-image-field="${fieldName}"]`);
+    if (imageItem) {
+        imageItem.classList.remove('marked-for-deletion');
+        
+        // 恢复删除按钮
+        const deleteBtn = imageItem.querySelector('.delete-image-btn');
+        if (deleteBtn) {
+            deleteBtn.innerHTML = '×';
+            deleteBtn.title = '删除图片';
+            deleteBtn.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                markImageForDeletion(fieldName);
+            };
+        }
+    }
+}
+
+// 初始化拖拽排序功能
+function initDragSort() {
+    const visitorImagesContainer = document.getElementById('current-visitor-images');
+    const memberImagesContainer = document.getElementById('current-member-images');
+    
+    if (visitorImagesContainer) {
+        makeContainerSortable(visitorImagesContainer, 'image');
+    }
+    
+    if (memberImagesContainer) {
+        makeContainerSortable(memberImagesContainer, 'member_image');
+    }
+}
+
+// 使容器内的元素可排序
+function makeContainerSortable(container, fieldPrefix) {
+    const items = container.querySelectorAll('.image-item');
+    
+    items.forEach(item => {
+        item.setAttribute('draggable', 'true');
+        
+        item.addEventListener('dragstart', function(e) {
+            e.dataTransfer.setData('text/plain', item.getAttribute('data-image-field'));
+            this.classList.add('dragging');
+        });
+        
+        item.addEventListener('dragend', function() {
+            this.classList.remove('dragging');
+        });
+        
+        item.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        });
+        
+        item.addEventListener('dragenter', function() {
+            this.classList.add('drag-over');
+        });
+        
+        item.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+        
+        item.addEventListener('drop', function(e) {
+            e.preventDefault();
+            const sourceField = e.dataTransfer.getData('text/plain');
+            const targetField = this.getAttribute('data-image-field');
+            
+            if (sourceField !== targetField) {
+                swapImages(sourceField, targetField);
+            }
+            
+            this.classList.remove('drag-over');
+        });
+    });
+}
+
+// 交换两个图片的位置
+function swapImages(sourceField, targetField) {
+    // 创建隐藏字段来记录交换信息
+    let swapField = document.getElementById('swap_images');
+    if (!swapField) {
+        swapField = document.createElement('input');
+        swapField.type = 'hidden';
+        swapField.name = 'swap_images';
+        swapField.id = 'swap_images';
+        document.getElementById('product-form').appendChild(swapField);
+    }
+    
+    // 添加交换信息到隐藏字段
+    const swapInfo = `${sourceField}:${targetField}`;
+    const currentValue = swapField.value;
+    swapField.value = currentValue ? `${currentValue},${swapInfo}` : swapInfo;
+    
+    // 视觉上交换元素位置
+    const sourceElement = document.querySelector(`[data-image-field="${sourceField}"]`);
+    const targetElement = document.querySelector(`[data-image-field="${targetField}"]`);
+    
+    if (sourceElement && targetElement) {
+        const sourceParent = sourceElement.parentNode;
+        const targetParent = targetElement.parentNode;
+        
+        const sourceNext = sourceElement.nextElementSibling;
+        const targetNext = targetElement.nextElementSibling;
+        
+        if (sourceNext === targetElement) {
+            // 如果源元素在目标元素之前
+            targetParent.insertBefore(targetElement, sourceElement);
+        } else if (targetNext === sourceElement) {
+            // 如果目标元素在源元素之前
+            sourceParent.insertBefore(sourceElement, targetElement);
+        } else {
+            // 如果两个元素不相邻
+            if (sourceNext) {
+                sourceParent.insertBefore(targetElement, sourceNext);
+            } else {
+                sourceParent.appendChild(targetElement);
+            }
+            
+            if (targetNext) {
+                targetParent.insertBefore(sourceElement, targetNext);
+            } else {
+                targetParent.appendChild(sourceElement);
+            }
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // 初始化拖拽排序
+    initDragSort();
+    
     <?php if ($edit_mode): ?>
     // 编辑模式：初始化图片统计显示
     const countField = document.getElementById('paid_photos_count_manual');

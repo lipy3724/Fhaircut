@@ -851,9 +851,9 @@ if (!isset($_SESSION["admin_loggedin"]) || $_SESSION["admin_loggedin"] !== true)
             </li>
             
             <!-- 网页管理伸缩菜单 -->
-            <li class="menu-group <?php echo (isset($_GET['page']) && in_array($_GET['page'], ['background', 'banner', 'contact'])) ? 'expanded' : ''; ?>">
+            <li class="menu-group <?php echo (isset($_GET['page']) && in_array($_GET['page'], ['background', 'banner', 'contact', 'activation'])) ? 'expanded' : ''; ?>">
                 <a href="javascript:void(0)" onclick="toggleWebSubmenu(this)">网页管理</a>
-                <ul class="submenu <?php echo (isset($_GET['page']) && in_array($_GET['page'], ['background', 'banner', 'contact'])) ? 'show' : ''; ?>">
+                <ul class="submenu <?php echo (isset($_GET['page']) && in_array($_GET['page'], ['background', 'banner', 'contact', 'activation'])) ? 'show' : ''; ?>">
                     <li <?php echo isset($_GET['page']) && $_GET['page'] === 'background' ? 'class="active"' : ''; ?>>
                         <a href="admin.php?page=background">背景图片</a>
                     </li>
@@ -862,6 +862,9 @@ if (!isset($_SESSION["admin_loggedin"]) || $_SESSION["admin_loggedin"] !== true)
                     </li>
                     <li <?php echo isset($_GET['page']) && $_GET['page'] === 'contact' ? 'class="active"' : ''; ?>>
                         <a href="admin.php?page=contact">联系方式</a>
+                    </li>
+                    <li <?php echo isset($_GET['page']) && $_GET['page'] === 'activation' ? 'class="active"' : ''; ?>>
+                        <a href="admin.php?page=activation">注册激活页面</a>
                     </li>
                 </ul>
             </li>
@@ -906,6 +909,9 @@ if (!isset($_SESSION["admin_loggedin"]) || $_SESSION["admin_loggedin"] !== true)
                         break;
                     case 'contact':
                         echo '联系方式管理';
+                        break;
+                    case 'activation':
+                        echo '注册激活页面管理';
                         break;
                     default:
                         echo '控制面板';
@@ -958,6 +964,9 @@ if (!isset($_SESSION["admin_loggedin"]) || $_SESSION["admin_loggedin"] !== true)
                 break;
             case 'contact':
                 include 'admin/contact.php';
+                break;
+            case 'activation':
+                include 'admin/activation.php';
                 break;
             default:
                 include 'admin/dashboard.php';
