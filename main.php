@@ -980,32 +980,21 @@ if ($result) {
                         </div>
                     </div>
                     
-                    <!-- 第二列：会员图片2 -->
-                    <?php if (!empty($product['member_image2'])): ?>
+                    <?php 
+                    // 动态显示所有会员图片（从第2张开始）
+                    for ($i = 2; $i <= 20; $i++): 
+                        $memberImageField = 'member_image' . $i;
+                        if (!empty($product[$memberImageField])): 
+                    ?>
                     <div class="product-info-column">
                         <div class="product-image-container">
-                            <img src="<?php echo htmlspecialchars($product['member_image2']); ?>" alt="<?php echo htmlspecialchars($product['title']); ?> - Member Image 2" class="product-image">
+                            <img src="<?php echo htmlspecialchars($product[$memberImageField]); ?>" alt="<?php echo htmlspecialchars($product['title']); ?> - Member Image <?php echo $i; ?>" class="product-image">
                         </div>
                     </div>
-                    <?php endif; ?>
-                    
-                    <!-- 第三列：会员图片3 -->
-                    <?php if (!empty($product['member_image3'])): ?>
-                    <div class="product-info-column">
-                        <div class="product-image-container">
-                            <img src="<?php echo htmlspecialchars($product['member_image3']); ?>" alt="<?php echo htmlspecialchars($product['title']); ?> - Member Image 3" class="product-image">
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    
-                    <!-- 第四列：会员图片4 -->
-                    <?php if (!empty($product['member_image4'])): ?>
-                    <div class="product-info-column">
-                        <div class="product-image-container">
-                            <img src="<?php echo htmlspecialchars($product['member_image4']); ?>" alt="<?php echo htmlspecialchars($product['title']); ?> - Member Image 4" class="product-image">
-                        </div>
-                    </div>
-                    <?php endif; ?>
+                    <?php 
+                        endif;
+                    endfor; 
+                    ?>
                     
                     <?php else: /* 游客看到带水印的图片 */ ?>
                     

@@ -299,11 +299,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 }
                 
                 // 会员图片对应的数据库字段
-            $member_image_fields = ['member_image1', 'member_image2', 'member_image3', 'member_image4', 'member_image5', 'member_image6'];
+            $member_image_fields = [
+                'member_image1', 'member_image2', 'member_image3', 'member_image4', 'member_image5', 
+                'member_image6', 'member_image7', 'member_image8', 'member_image9', 'member_image10',
+                'member_image11', 'member_image12', 'member_image13', 'member_image14', 'member_image15',
+                'member_image16', 'member_image17', 'member_image18', 'member_image19', 'member_image20'
+            ];
                 
                 // 处理每个上传的文件
                 $file_count = count($_FILES['products']['name'][$i]['member_images']);
-                $file_count = min($file_count, 6); // 限制最多处理6张图片
+                $file_count = min($file_count, 20); // 限制最多处理20张图片
                 
                 for ($j = 0; $j < $file_count; $j++) {
                     // 检查文件是否成功上传
@@ -500,17 +505,61 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             // 保存产品到数据库
             if ($custom_id > 0) {
                 // 使用自定义ID
-                $sql = "INSERT INTO products (id, title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO products (id, title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, member_image7, member_image8, member_image9, member_image10, member_image11, member_image12, member_image13, member_image14, member_image15, member_image16, member_image17, member_image18, member_image19, member_image20, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 if ($stmt = mysqli_prepare($conn, $sql)) {
-                    mysqli_stmt_bind_param($stmt, "issddiisissssssssiiissiisiss", 
-                        $custom_id, $title, $subtitle, $price, $photo_pack_price, $category_id, $guest, 
-                        $image_paths['image'], $image_paths['image2'], $image_paths['image3'], $image_paths['image4'],
-                        $image_paths['member_image1'], $image_paths['member_image2'], $image_paths['member_image3'], 
-                        $image_paths['member_image4'], $image_paths['member_image5'], $image_paths['member_image6'],
-                        $show_on_homepage, $images_total_size, $images_count, $images_formats_str,
-                        $paid_video_path, $paid_video_size, $paid_video_duration, 
-                        $paid_photos_zip_path, $paid_photos_total_size, $paid_photos_count, $paid_photos_formats);
+                    // 准备所有会员图片字段的值
+                    $memberImageValues = [];
+                    for ($j = 1; $j <= 20; $j++) {
+                        $field = 'member_image' . $j;
+                        $memberImageValues[] = isset($image_paths[$field]) ? $image_paths[$field] : null;
+                    }
+                    
+                    // 构建绑定参数类型字符串 - 20个会员图片字段，每个都是's'类型
+                    $types = 'issddiisissss'; // 基本字段
+                    for ($j = 1; $j <= 20; $j++) {
+                        $types .= 's'; // 为每个会员图片字段添加's'类型
+                    }
+                    $types .= 'iiiissdsiii'; // 剩余字段
+                    
+                    // 准备参数引用数组
+                    $bindParams = [$types];
+                    
+                    // 添加基本参数（通过引用）
+                    $bindParams[] = &$custom_id;
+                    $bindParams[] = &$title;
+                    $bindParams[] = &$subtitle;
+                    $bindParams[] = &$price;
+                    $bindParams[] = &$photo_pack_price;
+                    $bindParams[] = &$category_id;
+                    $bindParams[] = &$guest;
+                    $bindParams[] = &$image_paths['image'];
+                    $bindParams[] = &$image_paths['image2'];
+                    $bindParams[] = &$image_paths['image3'];
+                    $bindParams[] = &$image_paths['image4'];
+                    
+                    // 添加所有会员图片参数（通过引用）
+                    for ($j = 1; $j <= 20; $j++) {
+                        $field = 'member_image' . $j;
+                        $memberImageValues[$j-1] = isset($image_paths[$field]) ? $image_paths[$field] : null;
+                        $bindParams[] = &$memberImageValues[$j-1];
+                    }
+                    
+                    // 添加剩余参数（通过引用）
+                    $bindParams[] = &$show_on_homepage;
+                    $bindParams[] = &$images_total_size;
+                    $bindParams[] = &$images_count;
+                    $bindParams[] = &$images_formats_str;
+                    $bindParams[] = &$paid_video_path;
+                    $bindParams[] = &$paid_video_size;
+                    $bindParams[] = &$paid_video_duration;
+                    $bindParams[] = &$paid_photos_zip_path;
+                    $bindParams[] = &$paid_photos_total_size;
+                    $bindParams[] = &$paid_photos_count;
+                    $bindParams[] = &$paid_photos_formats;
+                    
+                    // 绑定参数
+                    mysqli_stmt_bind_param($stmt, ...$bindParams);
                     
                     if (mysqli_stmt_execute($stmt)) {
                         $success_count++;
@@ -526,17 +575,60 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 }
             } else {
                 // 自动分配ID
-                $sql = "INSERT INTO products (title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                $sql = "INSERT INTO products (title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, member_image7, member_image8, member_image9, member_image10, member_image11, member_image12, member_image13, member_image14, member_image15, member_image16, member_image17, member_image18, member_image19, member_image20, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 
                 if ($stmt = mysqli_prepare($conn, $sql)) {
-                    mysqli_stmt_bind_param($stmt, "ssddiisissssssssiiissiisiss", 
-                        $title, $subtitle, $price, $photo_pack_price, $category_id, $guest, 
-                        $image_paths['image'], $image_paths['image2'], $image_paths['image3'], $image_paths['image4'],
-                        $image_paths['member_image1'], $image_paths['member_image2'], $image_paths['member_image3'], 
-                        $image_paths['member_image4'], $image_paths['member_image5'], $image_paths['member_image6'],
-                        $show_on_homepage, $images_total_size, $images_count, $images_formats_str,
-                        $paid_video_path, $paid_video_size, $paid_video_duration, 
-                        $paid_photos_zip_path, $paid_photos_total_size, $paid_photos_count, $paid_photos_formats);
+                    // 准备所有会员图片字段的值
+                    $memberImageValues = [];
+                    for ($j = 1; $j <= 20; $j++) {
+                        $field = 'member_image' . $j;
+                        $memberImageValues[] = isset($image_paths[$field]) ? $image_paths[$field] : null;
+                    }
+                    
+                    // 构建绑定参数类型字符串 - 20个会员图片字段，每个都是's'类型
+                    $types = 'ssddiisissss'; // 基本字段
+                    for ($j = 1; $j <= 20; $j++) {
+                        $types .= 's'; // 为每个会员图片字段添加's'类型
+                    }
+                    $types .= 'iiiissdsiii'; // 剩余字段
+                    
+                    // 准备参数引用数组
+                    $bindParams = [$types];
+                    
+                    // 添加基本参数（通过引用）
+                    $bindParams[] = &$title;
+                    $bindParams[] = &$subtitle;
+                    $bindParams[] = &$price;
+                    $bindParams[] = &$photo_pack_price;
+                    $bindParams[] = &$category_id;
+                    $bindParams[] = &$guest;
+                    $bindParams[] = &$image_paths['image'];
+                    $bindParams[] = &$image_paths['image2'];
+                    $bindParams[] = &$image_paths['image3'];
+                    $bindParams[] = &$image_paths['image4'];
+                    
+                    // 添加所有会员图片参数（通过引用）
+                    for ($j = 1; $j <= 20; $j++) {
+                        $field = 'member_image' . $j;
+                        $memberImageValues[$j-1] = isset($image_paths[$field]) ? $image_paths[$field] : null;
+                        $bindParams[] = &$memberImageValues[$j-1];
+                    }
+                    
+                    // 添加剩余参数（通过引用）
+                    $bindParams[] = &$show_on_homepage;
+                    $bindParams[] = &$images_total_size;
+                    $bindParams[] = &$images_count;
+                    $bindParams[] = &$images_formats_str;
+                    $bindParams[] = &$paid_video_path;
+                    $bindParams[] = &$paid_video_size;
+                    $bindParams[] = &$paid_video_duration;
+                    $bindParams[] = &$paid_photos_zip_path;
+                    $bindParams[] = &$paid_photos_total_size;
+                    $bindParams[] = &$paid_photos_count;
+                    $bindParams[] = &$paid_photos_formats;
+                    
+                    // 绑定参数
+                    mysqli_stmt_bind_param($stmt, ...$bindParams);
                     
                     if (mysqli_stmt_execute($stmt)) {
                         $success_count++;
@@ -688,7 +780,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         // 如果是编辑模式，先获取当前产品的数据，以便保留未更改的图片
         $product_data = [];
         if ($action == 'edit_product') {
-            $get_product_sql = "SELECT id, title, subtitle, price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats FROM products WHERE id = ?";
+            $get_product_sql = "SELECT id, title, subtitle, price, category_id, guest, image, image2, image3, image4, 
+                member_image1, member_image2, member_image3, member_image4, member_image5, member_image6,
+                member_image7, member_image8, member_image9, member_image10, member_image11, member_image12,
+                member_image13, member_image14, member_image15, member_image16, member_image17, member_image18,
+                member_image19, member_image20,
+                paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, 
+                paid_photos_count, paid_photos_formats FROM products WHERE id = ?";
             if ($stmt = mysqli_prepare($conn, $get_product_sql)) {
                 mysqli_stmt_bind_param($stmt, "i", $product_id);
                 mysqli_stmt_execute($stmt);
@@ -1219,14 +1317,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         if (isset($_FILES['member_images']) && !empty($_FILES['member_images']['name'][0])) {
             $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
             $max_size = 6 * 1024 * 1024 * 1024; // 6GB
-            $max_files = 6; // 最多上传6张会员图片
+            $max_files = 20; // 最多上传20张会员图片
             
             // 会员图片对应的数据库字段
-            $member_db_fields = ['member_image1', 'member_image2', 'member_image3', 'member_image4', 'member_image5', 'member_image6'];
+            $member_db_fields = [
+                'member_image1', 'member_image2', 'member_image3', 'member_image4', 'member_image5', 
+                'member_image6', 'member_image7', 'member_image8', 'member_image9', 'member_image10',
+                'member_image11', 'member_image12', 'member_image13', 'member_image14', 'member_image15',
+                'member_image16', 'member_image17', 'member_image18', 'member_image19', 'member_image20'
+            ];
             
             // 处理每个上传的文件
             $file_count = count($_FILES['member_images']['name']);
-            $file_count = min($file_count, $max_files); // 限制最多处理6张图片
+            $file_count = min($file_count, $max_files); // 限制最多处理20张图片
             
             for ($i = 0; $i < $file_count; $i++) {
                 // 检查文件是否成功上传
@@ -1434,7 +1537,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             }
             
             // 会员图片
-            for ($i = 1; $i <= 6; $i++) {
+            for ($i = 1; $i <= 20; $i++) {
                 $field = 'member_image' . $i;
                 $delete_field = 'delete_' . $field;
                 
@@ -1489,7 +1592,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 // 添加新产品
                 if ($custom_id > 0) {
                     // 使用自定义ID
-                    $sql = "INSERT INTO products (id, title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $sql = "INSERT INTO products (id, title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, member_image7, member_image8, member_image9, member_image10, member_image11, member_image12, member_image13, member_image14, member_image15, member_image16, member_image17, member_image18, member_image19, member_image20, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     if ($stmt = mysqli_prepare($conn, $sql)) {
                         $imagesFormatsStr = implode(',', array_keys($finalFormatSet));
                         
@@ -1523,7 +1626,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         $paidPhotosFormats = strval($paidPhotosFormats);
                         
                         // 确保图片路径变量已初始化
-                        foreach (['image', 'image2', 'image3', 'image4', 'member_image1', 'member_image2', 'member_image3', 'member_image4', 'member_image5', 'member_image6'] as $field) {
+                        // 准备所有图片字段
+                        $imageFields = ['image', 'image2', 'image3', 'image4'];
+                        for ($j = 1; $j <= 20; $j++) {
+                            $imageFields[] = 'member_image' . $j;
+                        }
+                        
+                        foreach ($imageFields as $field) {
                             if (!isset($image_paths[$field])) {
                                 $image_paths[$field] = '';
                             }
@@ -1544,25 +1653,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             
                             // 添加调试日志，验证会员图片是否正确保存
                             error_log("Product added successfully with ID: $new_id");
-                            error_log("Member image paths: " . 
-                                "member_image1=" . ($image_paths['member_image1'] ?? 'NULL') . ", " .
-                                "member_image2=" . ($image_paths['member_image2'] ?? 'NULL') . ", " .
-                                "member_image3=" . ($image_paths['member_image3'] ?? 'NULL') . ", " .
-                                "member_image4=" . ($image_paths['member_image4'] ?? 'NULL') . ", " .
-                                "member_image5=" . ($image_paths['member_image5'] ?? 'NULL') . ", " .
-                                "member_image6=" . ($image_paths['member_image6'] ?? 'NULL'));
+                            // 构建会员图片路径日志
+                            $memberImageLog = [];
+                            for ($j = 1; $j <= 20; $j++) {
+                                $field = 'member_image' . $j;
+                                $memberImageLog[] = "$field=" . (isset($image_paths[$field]) ? $image_paths[$field] : 'NULL');
+                            }
+                            error_log("Member image paths: " . implode(", ", $memberImageLog));
                             
                             // 验证数据库中是否正确保存了会员图片
-                            $verify_member_images_sql = "SELECT member_image1, member_image2, member_image3, member_image4, member_image5, member_image6 FROM products WHERE id = $new_id";
+                            // 构建查询所有会员图片字段的SQL
+                            $memberImageFields = [];
+                            for ($j = 1; $j <= 20; $j++) {
+                                $memberImageFields[] = "member_image" . $j;
+                            }
+                            $verify_member_images_sql = "SELECT " . implode(", ", $memberImageFields) . " FROM products WHERE id = $new_id";
                             $verify_member_images_result = mysqli_query($conn, $verify_member_images_sql);
                             if ($verify_member_images_row = mysqli_fetch_assoc($verify_member_images_result)) {
-                                error_log("Verified member images in database: " . 
-                                    "member_image1=" . ($verify_member_images_row['member_image1'] ?? 'NULL') . ", " .
-                                    "member_image2=" . ($verify_member_images_row['member_image2'] ?? 'NULL') . ", " .
-                                    "member_image3=" . ($verify_member_images_row['member_image3'] ?? 'NULL') . ", " .
-                                    "member_image4=" . ($verify_member_images_row['member_image4'] ?? 'NULL') . ", " .
-                                    "member_image5=" . ($verify_member_images_row['member_image5'] ?? 'NULL') . ", " .
-                                    "member_image6=" . ($verify_member_images_row['member_image6'] ?? 'NULL'));
+                                // 构建验证会员图片日志
+                                $verifyMemberImageLog = [];
+                                for ($j = 1; $j <= 20; $j++) {
+                                    $field = 'member_image' . $j;
+                                    $verifyMemberImageLog[] = "$field=" . (isset($verify_member_images_row[$field]) ? $verify_member_images_row[$field] : 'NULL');
+                                }
+                                error_log("Verified member images in database: " . implode(", ", $verifyMemberImageLog));
                             }
                             
                             // 直接更新paid_photos_zip和paid_photos_formats字段，确保值正确
@@ -1607,7 +1721,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     }
                 } else {
                     // 使用自动生成的ID
-                    $sql = "INSERT INTO products (title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    $sql = "INSERT INTO products (title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, member_image7, member_image8, member_image9, member_image10, member_image11, member_image12, member_image13, member_image14, member_image15, member_image16, member_image17, member_image18, member_image19, member_image20, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                     if ($stmt = mysqli_prepare($conn, $sql)) {
                         $imagesFormatsStr = implode(',', array_keys($finalFormatSet));
                         
@@ -1640,7 +1754,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         $paidPhotosFormats = strval($paidPhotosFormats);
                         
                         // 确保图片路径变量已初始化
-                        foreach (['image', 'image2', 'image3', 'image4', 'member_image1', 'member_image2', 'member_image3', 'member_image4', 'member_image5', 'member_image6'] as $field) {
+                        // 准备所有图片字段
+                        $imageFields = ['image', 'image2', 'image3', 'image4'];
+                        for ($j = 1; $j <= 20; $j++) {
+                            $imageFields[] = 'member_image' . $j;
+                        }
+                        
+                        foreach ($imageFields as $field) {
                             if (!isset($image_paths[$field])) {
                                 $image_paths[$field] = '';
                             }
@@ -1687,14 +1807,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         error_log("参数数量: " . count($params));
                         
                         // 使用引用数组进行绑定
-                        $bindParams = array();
-                        $bindParams[] = &$types;
+                        $bindParams = array($types);
                         
                         for ($i = 0; $i < count($params); $i++) {
                             $bindParams[] = &$params[$i];
                         }
                         
-                        call_user_func_array('mysqli_stmt_bind_param', array_merge(array($stmt), $bindParams));
+                        mysqli_stmt_bind_param($stmt, ...$bindParams);
 
                         if (mysqli_stmt_execute($stmt)) {
                             $new_id = mysqli_insert_id($conn);
@@ -1702,25 +1821,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             
                             // 添加调试日志，验证会员图片是否正确保存
                             error_log("Product added successfully with ID: $new_id");
-                            error_log("Member image paths: " . 
-                                "member_image1=" . ($image_paths['member_image1'] ?? 'NULL') . ", " .
-                                "member_image2=" . ($image_paths['member_image2'] ?? 'NULL') . ", " .
-                                "member_image3=" . ($image_paths['member_image3'] ?? 'NULL') . ", " .
-                                "member_image4=" . ($image_paths['member_image4'] ?? 'NULL') . ", " .
-                                "member_image5=" . ($image_paths['member_image5'] ?? 'NULL') . ", " .
-                                "member_image6=" . ($image_paths['member_image6'] ?? 'NULL'));
+                            // 构建会员图片路径日志
+                            $memberImageLog = [];
+                            for ($j = 1; $j <= 20; $j++) {
+                                $field = 'member_image' . $j;
+                                $memberImageLog[] = "$field=" . (isset($image_paths[$field]) ? $image_paths[$field] : 'NULL');
+                            }
+                            error_log("Member image paths: " . implode(", ", $memberImageLog));
                             
                             // 验证数据库中是否正确保存了会员图片
-                            $verify_member_images_sql = "SELECT member_image1, member_image2, member_image3, member_image4, member_image5, member_image6 FROM products WHERE id = $new_id";
+                            // 构建查询所有会员图片字段的SQL
+                            $memberImageFields = [];
+                            for ($j = 1; $j <= 20; $j++) {
+                                $memberImageFields[] = "member_image" . $j;
+                            }
+                            $verify_member_images_sql = "SELECT " . implode(", ", $memberImageFields) . " FROM products WHERE id = $new_id";
                             $verify_member_images_result = mysqli_query($conn, $verify_member_images_sql);
                             if ($verify_member_images_row = mysqli_fetch_assoc($verify_member_images_result)) {
-                                error_log("Verified member images in database: " . 
-                                    "member_image1=" . ($verify_member_images_row['member_image1'] ?? 'NULL') . ", " .
-                                    "member_image2=" . ($verify_member_images_row['member_image2'] ?? 'NULL') . ", " .
-                                    "member_image3=" . ($verify_member_images_row['member_image3'] ?? 'NULL') . ", " .
-                                    "member_image4=" . ($verify_member_images_row['member_image4'] ?? 'NULL') . ", " .
-                                    "member_image5=" . ($verify_member_images_row['member_image5'] ?? 'NULL') . ", " .
-                                    "member_image6=" . ($verify_member_images_row['member_image6'] ?? 'NULL'));
+                                // 构建验证会员图片日志
+                                $verifyMemberImageLog = [];
+                                for ($j = 1; $j <= 20; $j++) {
+                                    $field = 'member_image' . $j;
+                                    $verifyMemberImageLog[] = "$field=" . (isset($verify_member_images_row[$field]) ? $verify_member_images_row[$field] : 'NULL');
+                                }
+                                error_log("Verified member images in database: " . implode(", ", $verifyMemberImageLog));
                             }
                             
                             // 直接更新paid_photos_zip和paid_photos_formats字段，确保值正确
@@ -1768,7 +1892,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 // 更新现有产品
                 // 获取旧图片路径
                 $old_image_paths = [];
-                $sql_get_old_images = "SELECT image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6 FROM products WHERE id = ?";
+                $sql_get_old_images = "SELECT image, image2, image3, image4, 
+                    member_image1, member_image2, member_image3, member_image4, member_image5, member_image6,
+                    member_image7, member_image8, member_image9, member_image10, member_image11, member_image12,
+                    member_image13, member_image14, member_image15, member_image16, member_image17, member_image18,
+                    member_image19, member_image20
+                    FROM products WHERE id = ?";
                 if ($stmt_old = mysqli_prepare($conn, $sql_get_old_images)) {
                     mysqli_stmt_bind_param($stmt_old, "i", $product_id);
                     mysqli_stmt_execute($stmt_old);
@@ -1888,13 +2017,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     }
                 } else {
                     // 不更改ID，正常更新
-                    $sql = "UPDATE products SET title = ?, subtitle = ?, price = ?, photo_pack_price = ?, category_id = ?, guest = ?, image = ?, image2 = ?, image3 = ?, image4 = ?, member_image1 = ?, member_image2 = ?, member_image3 = ?, member_image4 = ?, member_image5 = ?, member_image6 = ?, show_on_homepage = ?, images_total_size = ?, images_count = ?, images_formats = ?, paid_video = ?, paid_video_size = ?, paid_video_duration = ?, paid_photos_zip = ?, paid_photos_total_size = ?, paid_photos_count = ?, paid_photos_formats = ? WHERE id = ?";
+                    $sql = "UPDATE products SET title = ?, subtitle = ?, price = ?, photo_pack_price = ?, category_id = ?, guest = ?, image = ?, image2 = ?, image3 = ?, image4 = ?, member_image1 = ?, member_image2 = ?, member_image3 = ?, member_image4 = ?, member_image5 = ?, member_image6 = ?, member_image7 = ?, member_image8 = ?, member_image9 = ?, member_image10 = ?, member_image11 = ?, member_image12 = ?, member_image13 = ?, member_image14 = ?, member_image15 = ?, member_image16 = ?, member_image17 = ?, member_image18 = ?, member_image19 = ?, member_image20 = ?, show_on_homepage = ?, images_total_size = ?, images_count = ?, images_formats = ?, paid_video = ?, paid_video_size = ?, paid_video_duration = ?, paid_photos_zip = ?, paid_photos_total_size = ?, paid_photos_count = ?, paid_photos_formats = ? WHERE id = ?";
                     if ($stmt = mysqli_prepare($conn, $sql)) {
                         // 确保所有图片路径都不为null，防止数据库中的图片路径被覆盖为null
-                        foreach ([
-                            'image', 'image2', 'image3', 'image4', 
-                            'member_image1', 'member_image2', 'member_image3', 'member_image4', 'member_image5', 'member_image6'
-                        ] as $imgField) {
+                        // 准备所有图片字段
+                        $imageFields = ['image', 'image2', 'image3', 'image4'];
+                        for ($j = 1; $j <= 20; $j++) {
+                            $imageFields[] = 'member_image' . $j;
+                        }
+                        
+                        foreach ($imageFields as $imgField) {
                             if (!isset($image_paths[$imgField])) {
                                 $image_paths[$imgField] = '';
                             }
@@ -1940,19 +2072,58 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             error_log("paid_photos_formats field type: " . print_r($check_type_row, true));
                         }
                         
-                        // 使用基本的参数绑定方式
-                        mysqli_stmt_bind_param($stmt, 'ssddisssssssssssiiissiiissis', 
-                            $title, $subtitle, 
-                            $price, $photo_pack_price, 
-                            $category_id, $guest_visible,
-                            $image_paths['image'], $image_paths['image2'], $image_paths['image3'], $image_paths['image4'], 
-                            $image_paths['member_image1'], $image_paths['member_image2'], $image_paths['member_image3'], 
-                            $image_paths['member_image4'], $image_paths['member_image5'], $image_paths['member_image6'], 
-                            $show_on_homepage,
-                            $finalImageTotalBytes, $finalImageCount, $imagesFormatsStr, 
-                            $paidVideoPath, $paidVideoSize, $paidVideoDuration,
-                            $paidPhotosZipPath, $paidPhotosTotalSize, $paidPhotosCount, $paidPhotosFormats, 
-                            $product_id);
+                        // 准备所有会员图片字段的值
+                        $memberImageValues = [];
+                        for ($j = 1; $j <= 20; $j++) {
+                            $field = 'member_image' . $j;
+                            $memberImageValues[] = isset($image_paths[$field]) ? $image_paths[$field] : null;
+                        }
+                        
+                        // 构建绑定参数类型字符串 - 20个会员图片字段，每个都是's'类型
+                        $types = 'ssddissss'; // 基本字段
+                        for ($j = 1; $j <= 20; $j++) {
+                            $types .= 's'; // 为每个会员图片字段添加's'类型
+                        }
+                        $types .= 'iiiissiiissis'; // 剩余字段
+                        
+                        // 准备参数引用数组
+                        $bindParams = [$types];
+                        
+                        // 添加基本参数
+                        $bindParams[] = &$title;
+                        $bindParams[] = &$subtitle;
+                        $bindParams[] = &$price;
+                        $bindParams[] = &$photo_pack_price;
+                        $bindParams[] = &$category_id;
+                        $bindParams[] = &$guest_visible;
+                        $bindParams[] = &$image_paths['image'];
+                        $bindParams[] = &$image_paths['image2'];
+                        $bindParams[] = &$image_paths['image3'];
+                        $bindParams[] = &$image_paths['image4'];
+                        
+                        // 添加所有会员图片参数（通过引用）
+                        for ($j = 1; $j <= 20; $j++) {
+                            $field = 'member_image' . $j;
+                            $memberImageValues[$j-1] = isset($image_paths[$field]) ? $image_paths[$field] : null;
+                            $bindParams[] = &$memberImageValues[$j-1];
+                        }
+                        
+                        // 添加剩余参数（通过引用）
+                        $bindParams[] = &$show_on_homepage;
+                        $bindParams[] = &$finalImageTotalBytes;
+                        $bindParams[] = &$finalImageCount;
+                        $bindParams[] = &$imagesFormatsStr;
+                        $bindParams[] = &$paidVideoPath;
+                        $bindParams[] = &$paidVideoSize;
+                        $bindParams[] = &$paidVideoDuration;
+                        $bindParams[] = &$paidPhotosZipPath;
+                        $bindParams[] = &$paidPhotosTotalSize;
+                        $bindParams[] = &$paidPhotosCount;
+                        $bindParams[] = &$paidPhotosFormats;
+                        $bindParams[] = &$product_id;
+                        
+                        // 绑定参数
+                        mysqli_stmt_bind_param($stmt, ...$bindParams);
                     
                     if (mysqli_stmt_execute($stmt)) {
                         $success_message = "产品更新成功";
@@ -2275,7 +2446,14 @@ if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
     $edit_mode = true;
     $product_id = intval($_GET['id']);
     
-    $sql = "SELECT id, title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats FROM products WHERE id = ?";
+    $sql = "SELECT id, title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4, 
+        member_image1, member_image2, member_image3, member_image4, member_image5, member_image6, 
+        member_image7, member_image8, member_image9, member_image10, member_image11, member_image12, 
+        member_image13, member_image14, member_image15, member_image16, member_image17, member_image18, 
+        member_image19, member_image20, 
+        show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, 
+        paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats 
+        FROM products WHERE id = ?";
     if ($stmt = mysqli_prepare($conn, $sql)) {
         mysqli_stmt_bind_param($stmt, "i", $product_id);
         mysqli_stmt_execute($stmt);
@@ -2701,7 +2879,7 @@ if ($result) {
                     <div class="form-group">
                         <label for="member_images">会员专属图片（无水印）</label>
                         <input type="file" id="member_images" name="member_images[]" accept="image/*" multiple onchange="previewImages(this, 'member-image-preview')">
-                        <div class="help-text">会员专属图片，无水印，游客看不到。可一次上传多张图片（最多6张）</div>
+                        <div class="help-text">会员专属图片，无水印，游客看不到。可一次上传多张图片（最多20张）</div>
                         <div id="member-image-preview"></div>
                     </div>
                 </fieldset>
@@ -2825,54 +3003,24 @@ if ($result) {
                 <fieldset class="span-3">
                     <legend>当前会员图片（无水印）</legend>
                     <div class="current-images" id="current-member-images">
-                        <?php if (!empty($product_data['member_image1'])): ?>
-                            <div class="image-item" data-image-field="member_image1">
-                                <p>会员图片1（无水印）</p>
-                                <img src="../<?php echo htmlspecialchars($product_data['member_image1']); ?>" alt="当前会员图片1" style="max-width: 150px; max-height: 150px;">
-                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image1')">×</button>
-                                <input type="hidden" name="delete_member_image1" id="delete_member_image1" value="0">
+                        <?php 
+                        // 会员图片显示区域
+                        
+                        // 动态生成会员图片显示
+                        for ($i = 1; $i <= 20; $i++):
+                            $field = 'member_image' . $i;
+                            if (!empty($product_data[$field])): 
+                        ?>
+                            <div class="image-item" data-image-field="<?php echo $field; ?>">
+                                <p>会员图片<?php echo $i; ?>（无水印）</p>
+                                <img src="../<?php echo htmlspecialchars($product_data[$field]); ?>" alt="当前会员图片<?php echo $i; ?>" style="width: 150px; height: 150px; object-fit: cover;">
+                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('<?php echo $field; ?>')">×</button>
+                                <input type="hidden" name="delete_<?php echo $field; ?>" id="delete_<?php echo $field; ?>" value="0">
                             </div>
-                        <?php endif; ?>
-                        <?php if (!empty($product_data['member_image2'])): ?>
-                            <div class="image-item" data-image-field="member_image2">
-                                <p>会员图片2（无水印）</p>
-                                <img src="../<?php echo htmlspecialchars($product_data['member_image2']); ?>" alt="当前会员图片2" style="max-width: 150px; max-height: 150px;">
-                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image2')">×</button>
-                                <input type="hidden" name="delete_member_image2" id="delete_member_image2" value="0">
-                            </div>
-                        <?php endif; ?>
-                        <?php if (!empty($product_data['member_image3'])): ?>
-                            <div class="image-item" data-image-field="member_image3">
-                                <p>会员图片3（无水印）</p>
-                                <img src="../<?php echo htmlspecialchars($product_data['member_image3']); ?>" alt="当前会员图片3" style="max-width: 150px; max-height: 150px;">
-                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image3')">×</button>
-                                <input type="hidden" name="delete_member_image3" id="delete_member_image3" value="0">
-                            </div>
-                        <?php endif; ?>
-                        <?php if (!empty($product_data['member_image4'])): ?>
-                            <div class="image-item" data-image-field="member_image4">
-                                <p>会员图片4（无水印）</p>
-                                <img src="../<?php echo htmlspecialchars($product_data['member_image4']); ?>" alt="当前会员图片4" style="max-width: 150px; max-height: 150px;">
-                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image4')">×</button>
-                                <input type="hidden" name="delete_member_image4" id="delete_member_image4" value="0">
-                            </div>
-                        <?php endif; ?>
-                        <?php if (!empty($product_data['member_image5'])): ?>
-                            <div class="image-item" data-image-field="member_image5">
-                                <p>会员图片5（无水印）</p>
-                                <img src="../<?php echo htmlspecialchars($product_data['member_image5']); ?>" alt="当前会员图片5" style="max-width: 150px; max-height: 150px;">
-                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image5')">×</button>
-                                <input type="hidden" name="delete_member_image5" id="delete_member_image5" value="0">
-                            </div>
-                        <?php endif; ?>
-                        <?php if (!empty($product_data['member_image6'])): ?>
-                            <div class="image-item" data-image-field="member_image6">
-                                <p>会员图片6（无水印）</p>
-                                <img src="../<?php echo htmlspecialchars($product_data['member_image6']); ?>" alt="当前会员图片6" style="max-width: 150px; max-height: 150px;">
-                                <button type="button" class="delete-image-btn" onclick="markImageForDeletion('member_image6')">×</button>
-                                <input type="hidden" name="delete_member_image6" id="delete_member_image6" value="0">
-                            </div>
-                        <?php endif; ?>
+                        <?php 
+                            endif;
+                        endfor; 
+                        ?>
                     </div>
                 </fieldset>
                 <?php endif; ?>
@@ -2957,7 +3105,7 @@ if ($result) {
                                 <legend>会员图片</legend>
                                 <div class="form-group">
                                     <input type="file" id="member_images_{index}" name="products[{index}][member_images][]" accept="image/*" multiple>
-                                    <div class="help-text">无水印，最多6张</div>
+                                    <div class="help-text">无水印，最多20张</div>
                         </div>
                             </fieldset>
                     </div>
@@ -4441,8 +4589,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .current-images {
     margin-top: 10px;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 15px;
 }
 
@@ -4451,10 +4599,13 @@ document.addEventListener('DOMContentLoaded', function() {
     border: 1px solid #e0e0e0;
     border-radius: 4px;
     text-align: center;
-    width: 180px;
+    width: 100%;
     position: relative;
     cursor: move;
     transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .image-item.marked-for-deletion {

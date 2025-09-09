@@ -786,9 +786,9 @@ $showPhotoCartButton = $hasPhotoPackPrice && $hasPhotoContent;
           </div>
       <?php
         } else {
-          // 会员显示无水印的图片1-6（完全替换游客图片）
+          // 会员显示无水印的图片1-20（完全替换游客图片）
           // 主图位置也显示会员图片
-          for ($i = 2; $i <= 6; $i++): 
+          for ($i = 2; $i <= 20; $i++): 
             $memberImageField = 'member_image' . $i;
             if (!empty($product[$memberImageField])): 
       ?>
