@@ -339,7 +339,7 @@ if (!isset($activation_settings['activation_note'])) $activation_settings['activ
         <!-- Skip Activation Button -->
         <div class="skip-activation-container" style="margin: 15px 0;">
             <button type="button" id="skip-activation-btn" class="skip-activation-btn">
-                Skip Activation
+                Not paying temporarily
             </button>
         </div>
         
