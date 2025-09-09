@@ -856,42 +856,62 @@ if ($result) {
     <!-- 分页 -->
     <?php if ($total_pages > 1): ?>
     <div class="pagination-container">
-        <div class="pagination-info">
-            显示第 <?php echo ($offset + 1); ?> - <?php echo min($offset + $items_per_page, $total_records); ?> 条，共 <?php echo $total_records; ?> 条记录
-        </div>
-        
-        <div class="pagination-controls">
-            <!-- 每页显示数量选择 -->
-            <div class="items-per-page">
-                <span>每页显示：</span>
-                <select onchange="changeItemsPerPage(this.value)">
-                    <?php foreach ($items_per_page_options as $option): ?>
-                    <option value="<?php echo $option; ?>" <?php echo $items_per_page == $option ? 'selected' : ''; ?>><?php echo $option; ?></option>
-                    <?php endforeach; ?>
-                </select>
+        <div class="pagination-wrapper">
+            <div class="pagination-left"></div>
+            
+            <div class="pagination-center">
+                <div class="pagination">
+                    <?php if ($current_page > 1): ?>
+                        <a href="admin.php?page=hair&page_num=1&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">首页</a>
+                        <a href="admin.php?page=hair&page_num=<?php echo $current_page - 1; ?>&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">上一页</a>
+                    <?php endif; ?>
+                    
+                    <?php
+                    // 显示页码
+                    $start_page = max(1, $current_page - 2);
+                    $end_page = min($total_pages, $current_page + 2);
+                    
+                    if ($start_page > 1) {
+                        echo '<span class="page-ellipsis">...</span>';
+                    }
+                    
+                    // 如果没有数据或只有一页，只显示页码1
+                    if ($total_pages <= 1) {
+                        echo '<span class="page-link current">1</span>';
+                    } else {
+                        // 有多页数据时，正常显示页码
+                        for ($i = $start_page; $i <= $end_page; $i++) {
+                            if ($i == $current_page) {
+                                echo '<span class="page-link current">' . $i . '</span>';
+                            } else {
+                                echo '<a href="admin.php?page=hair&page_num=' . $i . '&items_per_page=' . $items_per_page . '&search=' . urlencode($search_term) . '" class="page-link">' . $i . '</a>';
+                            }
+                        }
+                    }
+                    
+                    if ($end_page < $total_pages) {
+                        echo '<span class="page-ellipsis">...</span>';
+                    }
+                    ?>
+                    
+                    <?php if ($current_page < $total_pages): ?>
+                        <a href="admin.php?page=hair&page_num=<?php echo $current_page + 1; ?>&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">下一页</a>
+                        <a href="admin.php?page=hair&page_num=<?php echo $total_pages; ?>&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">末页</a>
+                    <?php endif; ?>
+                </div>
+                
+                <div class="pagination-info">
+                    显示 <?php echo $offset + 1; ?> - <?php echo min($offset + $items_per_page, $total_records); ?> 条，共 <?php echo $total_records; ?> 条记录
+                </div>
             </div>
             
-            <!-- 页码导航 -->
-            <div class="pagination">
-                <?php if ($current_page > 1): ?>
-                <a href="admin.php?page=hair&page_num=1&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">首页</a>
-                <a href="admin.php?page=hair&page_num=<?php echo $current_page - 1; ?>&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">上一页</a>
-                <?php endif; ?>
-                
-                <?php
-                $start_page = max(1, $current_page - 2);
-                $end_page = min($total_pages, $current_page + 2);
-                
-                for ($i = $start_page; $i <= $end_page; $i++):
-                ?>
-                <a href="admin.php?page=hair&page_num=<?php echo $i; ?>&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" 
-                   class="page-link <?php echo $i == $current_page ? 'active' : ''; ?>"><?php echo $i; ?></a>
-                <?php endfor; ?>
-                
-                <?php if ($current_page < $total_pages): ?>
-                <a href="admin.php?page=hair&page_num=<?php echo $current_page + 1; ?>&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">下一页</a>
-                <a href="admin.php?page=hair&page_num=<?php echo $total_pages; ?>&items_per_page=<?php echo $items_per_page; ?>&search=<?php echo urlencode($search_term); ?>" class="page-link">末页</a>
-                <?php endif; ?>
+            <div class="items-per-page">
+                <span>每页显示：</span>
+                <select id="items-per-page-select" onchange="changeItemsPerPage(this.value)">
+                    <?php foreach ($items_per_page_options as $option): ?>
+                    <option value="<?php echo $option; ?>" <?php echo ($option == $items_per_page) ? 'selected' : ''; ?>><?php echo $option; ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
         </div>
     </div>
@@ -1438,6 +1458,7 @@ if ($result) {
 
 .form-actions {
     margin-top: 20px;
+    margin-bottom: 30px;
     display: flex;
     gap: 10px;
     justify-content: center;
@@ -1467,60 +1488,118 @@ if ($result) {
     opacity: 0.9;
 }
 
+/* 分页控件样式 */
 .pagination-container {
     margin-top: 20px;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    flex-wrap: wrap;
     gap: 15px;
 }
 
-.pagination-info {
-    color: #6c757d;
-    font-size: 14px;
+.pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
 }
 
-.pagination-controls {
+.pagination-left {
+    flex: 1;
+}
+
+.pagination-center {
+    flex: 2;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 10px;
+}
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.page-link {
+    display: inline-block;
+    padding: 8px 12px;
+    background-color: #ffecf0;
+    color: #e75480;
+    text-decoration: none;
+    border-radius: 4px;
+    border: 1px solid #f7a4b9;
+    transition: all 0.2s ease;
+}
+
+.page-link:hover {
+    background-color: #e75480;
+    color: white;
+    border-color: #e75480;
+}
+
+.page-link.current {
+    background-color: #e75480;
+    color: white;
+    border-color: #e75480;
+    font-weight: bold;
+}
+
+.page-link.active {
+    background-color: #e75480;
+    color: white;
+    border-color: #e75480;
+    font-weight: bold;
+}
+
+.page-ellipsis {
+    padding: 8px 12px;
+    color: #6c757d;
 }
 
 .items-per-page {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-size: 14px;
+    gap: 10px;
+    justify-content: flex-end;
+    flex: 1;
+}
+
+.items-per-page span {
+    color: #4A4A4A;
+    white-space: nowrap;
 }
 
 .items-per-page select {
-    padding: 4px 8px;
-    border: 1px solid #ddd;
+    padding: 6px 10px;
+    border: 1px solid #f7a4b9;
     border-radius: 4px;
+    background-color: #ffecf0;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    appearance: auto;
+    min-width: 60px;
+    text-align: center;
 }
 
-.pagination {
-    display: flex;
-    gap: 5px;
+.items-per-page select:hover {
+    background-color: #ffccd5;
+    border-color: #e75480;
 }
 
-.page-link {
-    padding: 8px 12px;
-    text-decoration: none;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    color: #007bff;
+.items-per-page select:focus {
+    outline: none;
+    border-color: #e75480;
+    box-shadow: 0 0 0 2px rgba(231, 84, 128, 0.25);
 }
 
-.page-link:hover {
-    background-color: #e9ecef;
-}
-
-.page-link.active {
-    background-color: #007bff;
-    color: white;
-    border-color: #007bff;
+.pagination-info {
+    color: #6c757d;
+    font-size: 14px;
+    text-align: center;
 }
 
 /* 批量上传样式增强 */
@@ -1848,12 +1927,29 @@ if ($result) {
     
     .pagination-container {
         flex-direction: column;
-        align-items: stretch;
+        align-items: center;
     }
     
-    .pagination-controls {
+    .pagination-wrapper {
         flex-direction: column;
-        gap: 10px;
+        gap: 15px;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .pagination-left {
+        display: none;
+    }
+    
+    .pagination-center {
+        flex: none;
+        width: 100%;
+        align-items: center;
+    }
+    
+    .items-per-page {
+        justify-content: center;
+        flex: none;
     }
     
     .data-table {
@@ -1923,19 +2019,25 @@ function updateBatchDeleteButtonState() {
     const checkedBoxes = document.querySelectorAll('.hair-checkbox:checked');
     const selectAllCheckbox = document.getElementById('selectAll');
     const batchDeleteBtn = document.querySelector('.batch-delete-btn');
+    
+    // 如果批量删除按钮不存在（如在批量添加页面），直接返回
+    if (!batchDeleteBtn) return;
+    
     const btnText = batchDeleteBtn.querySelector('.btn-text');
     const btnCount = batchDeleteBtn.querySelector('.btn-count');
     
     // 更新全选复选框状态
-    if (checkedBoxes.length === 0) {
-        selectAllCheckbox.checked = false;
-        selectAllCheckbox.indeterminate = false;
-    } else if (checkedBoxes.length === checkboxes.length) {
-        selectAllCheckbox.checked = true;
-        selectAllCheckbox.indeterminate = false;
-    } else {
-        selectAllCheckbox.checked = false;
-        selectAllCheckbox.indeterminate = true;
+    if (selectAllCheckbox) {
+        if (checkedBoxes.length === 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        } else if (checkedBoxes.length === checkboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        }
     }
     
     // 更新批量删除按钮状态
@@ -1960,8 +2062,11 @@ function clearSelection() {
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
-    selectAllCheckbox.checked = false;
-    selectAllCheckbox.indeterminate = false;
+    
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
     updateBatchDeleteButtonState();
 }
 
@@ -2408,3 +2513,547 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </template>
+
+
+<?php
+// 开启输出缓冲，解决header已发送的问题
+ob_start();
+
+// 启用错误显示
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// 创建hair表（如果不存在）
+$create_table_sql = "CREATE TABLE IF NOT EXISTS hair (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL COMMENT '头发标题',
+    description TEXT COMMENT '头发简介',
+    length DECIMAL(5,2) DEFAULT 0.00 COMMENT '长度(cm)',
+    weight DECIMAL(8,2) DEFAULT 0.00 COMMENT '重量(g)',
+    value DECIMAL(10,2) DEFAULT 0.00 COMMENT '价值($)',
+    image VARCHAR(255) COMMENT '主图片',
+    image2 VARCHAR(255) COMMENT '图片2',
+    image3 VARCHAR(255) COMMENT '图片3',
+    image4 VARCHAR(255) COMMENT '图片4',
+    image5 VARCHAR(255) COMMENT '图片5',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='头发信息表'";
+
+if (!mysqli_query($conn, $create_table_sql)) {
+    // 表创建失败，但不阻止程序继续执行
+    // echo "Warning: " . mysqli_error($conn);
+}
+
+
+// 处理批量删除操作
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'batch_delete_hair') {
+    if (isset($_POST['hair_ids']) && is_array($_POST['hair_ids']) && !empty($_POST['hair_ids'])) {
+        $hair_ids = array_map('intval', $_POST['hair_ids']);
+        $deleted_count = 0;
+        $error_count = 0;
+        
+        foreach ($hair_ids as $hair_id) {
+            // 先获取头发信息，以便删除相关文件
+            $sql = "SELECT * FROM hair WHERE id = ?";
+            if ($stmt = mysqli_prepare($conn, $sql)) {
+                mysqli_stmt_bind_param($stmt, "i", $hair_id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $hair_data = mysqli_fetch_assoc($result);
+                mysqli_stmt_close($stmt);
+                
+                if ($hair_data) {
+                    // 删除相关图片文件
+                    $image_fields = ['image', 'image2', 'image3', 'image4', 'image5'];
+                    foreach ($image_fields as $field) {
+                        if (!empty($hair_data[$field])) {
+                            $file_path = "../" . $hair_data[$field];
+                            if (file_exists($file_path)) {
+                                unlink($file_path);
+                            }
+                        }
+                    }
+                    
+                    // 删除数据库记录
+                    $delete_sql = "DELETE FROM hair WHERE id = ?";
+                    if ($delete_stmt = mysqli_prepare($conn, $delete_sql)) {
+                        mysqli_stmt_bind_param($delete_stmt, "i", $hair_id);
+                        if (mysqli_stmt_execute($delete_stmt)) {
+                            $deleted_count++;
+                        } else {
+                            $error_count++;
+                        }
+                        mysqli_stmt_close($delete_stmt);
+                    }
+                } else {
+                    $error_count++;
+                }
+            }
+        }
+        
+        if ($deleted_count > 0) {
+            $success_message = "成功删除 {$deleted_count} 个头发记录！";
+        }
+        
+        if ($error_count > 0) {
+            $errors[] = "删除过程中有 {$error_count} 个头发记录删除失败！";
+        }
+        
+        // 重定向到列表页面
+        header("Location: admin.php?page=hair");
+        exit;
+    } else {
+        $errors[] = "请选择要删除的头发记录！";
+    }
+}
+
+
+// 处理删除操作
+if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
+    $id = intval($_GET['id']);
+    
+    // 先获取头发信息，以便删除相关文件
+    $sql = "SELECT * FROM hair WHERE id = ?";
+    if ($stmt = mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $hair_data = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+        
+        if ($hair_data) {
+            // 删除相关图片文件
+            $image_fields = ['image', 'image2', 'image3', 'image4', 'image5'];
+            foreach ($image_fields as $field) {
+                if (!empty($hair_data[$field])) {
+                    $file_path = "../" . $hair_data[$field];
+                    if (file_exists($file_path)) {
+                        unlink($file_path);
+                    }
+                }
+            }
+            
+            // 删除数据库记录
+            $delete_sql = "DELETE FROM hair WHERE id = ?";
+            if ($delete_stmt = mysqli_prepare($conn, $delete_sql)) {
+                mysqli_stmt_bind_param($delete_stmt, "i", $id);
+                if (mysqli_stmt_execute($delete_stmt)) {
+                    $success_message = "头发记录删除成功！";
+                } else {
+                    $errors[] = "删除头发记录时出错：" . mysqli_error($conn);
+                }
+                mysqli_stmt_close($delete_stmt);
+            }
+        }
+    }
+}
+
+// 处理编辑/添加操作
+$edit_mode = false;
+$hair_data = [];
+$errors = [];
+$success_message = '';
+
+if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($_GET['id'])) {
+    $edit_mode = true;
+    $id = intval($_GET['id']);
+    
+    // 获取头发数据
+    $sql = "SELECT * FROM hair WHERE id = ?";
+    if ($stmt = mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, "i", $id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $hair_data = mysqli_fetch_assoc($result);
+        mysqli_stmt_close($stmt);
+        
+        if (!$hair_data) {
+            $errors[] = "找不到指定的头发记录！";
+            $edit_mode = false;
+        }
+    }
+}
+
+// 处理表单提交
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $length = floatval($_POST['length'] ?? 0);
+    $weight = floatval($_POST['weight'] ?? 0);
+    $value = floatval($_POST['value'] ?? 0);
+    $action = $_POST['action'] ?? '';
+    
+    // 基本验证
+    if (empty($title)) {
+        $errors[] = "头发标题不能为空！";
+    }
+    
+    if (empty($errors)) {
+        // 处理文件上传
+        $upload_dir = "./uploads/hair/";
+        $image_fields = ['image', 'image2', 'image3', 'image4', 'image5'];
+        $uploaded_images = [];
+        
+        // 确保上传目录存在
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        // 处理多文件上传
+        if (isset($_FILES['hair_images']) && !empty($_FILES['hair_images']['name'][0])) {
+            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $max_files = 5;
+            
+            $file_count = count($_FILES['hair_images']['name']);
+            $file_count = min($file_count, $max_files); // 限制最多5张图片
+            
+            for ($i = 0; $i < $file_count; $i++) {
+                // 检查文件是否成功上传
+                if ($_FILES['hair_images']['error'][$i] == UPLOAD_ERR_OK) {
+                    $file_name = $_FILES['hair_images']['name'][$i];
+                    $file_tmp = $_FILES['hair_images']['tmp_name'][$i];
+                    $file_extension = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                    
+                    // 验证文件类型
+                    if (!in_array($file_extension, $allowed_extensions)) {
+                        $errors[] = "文件 {$file_name} 格式不支持，请上传 jpg, jpeg, png, gif 或 webp 格式的图片！";
+                        continue;
+                    }
+                    
+                    // 生成唯一文件名
+                    $unique_name = uniqid() . '_' . $i . '.' . $file_extension;
+                    $upload_path = $upload_dir . $unique_name;
+                    
+                    if (move_uploaded_file($file_tmp, $upload_path)) {
+                        $uploaded_images[$image_fields[$i]] = "uploads/hair/" . $unique_name;
+                    } else {
+                        $errors[] = "上传文件 {$file_name} 失败！";
+                    }
+                } else if ($_FILES['hair_images']['error'][$i] != UPLOAD_ERR_NO_FILE) {
+                    $errors[] = "图片" . ($i + 1) . "上传失败！";
+                }
+            }
+        }
+        
+        if (empty($errors)) {
+            if ($action == 'edit' && isset($_POST['hair_id'])) {
+                // 编辑现有头发
+                $hair_id = intval($_POST['hair_id']);
+                
+                // 构建更新SQL
+                $update_fields = ['title = ?', 'description = ?', 'length = ?', 'weight = ?', 'value = ?'];
+                $update_values = [$title, $description, $length, $weight, $value];
+                $update_types = 'ssddd';
+                
+                // 添加图片字段
+                foreach ($image_fields as $field) {
+                    if (isset($uploaded_images[$field])) {
+                        $update_fields[] = "{$field} = ?";
+                        $update_values[] = $uploaded_images[$field];
+                        $update_types .= 's';
+                        
+                        // 删除旧图片
+                        if (!empty($hair_data[$field])) {
+                            $old_file = "../" . $hair_data[$field];
+                            if (file_exists($old_file)) {
+                                unlink($old_file);
+                            }
+                        }
+                    }
+                }
+                
+                $update_values[] = $hair_id;
+                $update_types .= 'i';
+                
+                $sql = "UPDATE hair SET " . implode(', ', $update_fields) . " WHERE id = ?";
+                
+                if ($stmt = mysqli_prepare($conn, $sql)) {
+                    mysqli_stmt_bind_param($stmt, $update_types, ...$update_values);
+                    if (mysqli_stmt_execute($stmt)) {
+                        $success_message = "头发信息更新成功！";
+                        header("Location: admin.php?page=hair");
+                        exit;
+                    } else {
+                        $errors[] = "更新头发信息时出错：" . mysqli_error($conn);
+                    }
+                    mysqli_stmt_close($stmt);
+                }
+            } else {
+                // 添加新头发
+                $insert_fields = ['title', 'description', 'length', 'weight', 'value'];
+                $insert_placeholders = ['?', '?', '?', '?', '?'];
+                $insert_values = [$title, $description, $length, $weight, $value];
+                $insert_types = 'ssddd';
+                
+                // 添加图片字段
+                foreach ($image_fields as $field) {
+                    if (isset($uploaded_images[$field])) {
+                        $insert_fields[] = $field;
+                        $insert_placeholders[] = '?';
+                        $insert_values[] = $uploaded_images[$field];
+                        $insert_types .= 's';
+                    }
+                }
+                
+                $sql = "INSERT INTO hair (" . implode(', ', $insert_fields) . ") VALUES (" . implode(', ', $insert_placeholders) . ")";
+                
+                if ($stmt = mysqli_prepare($conn, $sql)) {
+                    mysqli_stmt_bind_param($stmt, $insert_types, ...$insert_values);
+                    if (mysqli_stmt_execute($stmt)) {
+                        $success_message = "头发添加成功！";
+                        header("Location: admin.php?page=hair");
+                        exit;
+                    } else {
+                        $errors[] = "添加头发时出错：" . mysqli_error($conn);
+                    }
+                    mysqli_stmt_close($stmt);
+                }
+            }
+        }
+    }
+}
+
+// 处理批量上传
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['batch_upload'])) {
+    $batch_errors = [];
+    $batch_success_count = 0;
+    
+    if (isset($_FILES['batch_files']) && is_array($_FILES['batch_files']['name'])) {
+        $upload_dir = "./uploads/hair/";
+        
+        // 确保上传目录存在
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        $file_count = count($_FILES['batch_files']['name']);
+        
+        for ($i = 0; $i < $file_count; $i++) {
+            if ($_FILES['batch_files']['error'][$i] == UPLOAD_ERR_OK) {
+                $file_name = $_FILES['batch_files']['name'][$i];
+                $file_tmp = $_FILES['batch_files']['tmp_name'][$i];
+                $file_extension = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                
+                if (in_array($file_extension, $allowed_extensions)) {
+                    $unique_name = uniqid() . '.' . $file_extension;
+                    $upload_path = $upload_dir . $unique_name;
+                    
+                    if (move_uploaded_file($file_tmp, $upload_path)) {
+                        // 从文件名提取标题（去掉扩展名）
+                        $title = pathinfo($file_name, PATHINFO_FILENAME);
+                        
+                        // 插入数据库
+                        $sql = "INSERT INTO hair (title, image) VALUES (?, ?)";
+                        if ($stmt = mysqli_prepare($conn, $sql)) {
+                            $image_path = "uploads/hair/" . $unique_name;
+                            mysqli_stmt_bind_param($stmt, "ss", $title, $image_path);
+                            if (mysqli_stmt_execute($stmt)) {
+                                $batch_success_count++;
+                            } else {
+                                $batch_errors[] = "保存文件 {$file_name} 到数据库时出错";
+                            }
+                            mysqli_stmt_close($stmt);
+                        }
+                    } else {
+                        $batch_errors[] = "上传文件 {$file_name} 失败";
+                    }
+                } else {
+                    $batch_errors[] = "文件 {$file_name} 格式不支持";
+                }
+            }
+        }
+        
+        if ($batch_success_count > 0) {
+            $success_message = "成功批量上传 {$batch_success_count} 个头发！";
+        }
+        
+        if (!empty($batch_errors)) {
+            $errors = array_merge($errors, $batch_errors);
+        }
+    } else {
+        $errors[] = "请选择要上传的文件！";
+    }
+}
+
+// 处理批量添加头发
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $_POST['action'] == 'batch_add_hair') {
+    $batch_errors = [];
+    $batch_success_count = 0;
+    
+    if (isset($_POST['hairs']) && is_array($_POST['hairs'])) {
+        $upload_dir = "./uploads/hair/";
+        
+        // 确保上传目录存在
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        foreach ($_POST['hairs'] as $index => $hair_data) {
+            $hair_errors = [];
+            
+            // 验证必填字段
+            if (empty($hair_data['title'])) {
+                $hair_errors[] = "头发标题不能为空";
+            }
+            
+            // 处理图片上传
+            $uploaded_images = [];
+            if (isset($_FILES['hairs']) && isset($_FILES['hairs']['name'][$index]['hair_images'])) {
+                $images = $_FILES['hairs']['name'][$index]['hair_images'];
+                $tmp_names = $_FILES['hairs']['tmp_name'][$index]['hair_images'];
+                $errors_arr = $_FILES['hairs']['error'][$index]['hair_images'];
+                
+                if (is_array($images)) {
+                    for ($i = 0; $i < count($images); $i++) {
+                        if ($errors_arr[$i] == UPLOAD_ERR_OK && !empty($images[$i])) {
+                            $file_name = $images[$i];
+                            $file_tmp = $tmp_names[$i];
+                            $file_extension = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+                            $allowed_extensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                            
+                            if (in_array($file_extension, $allowed_extensions)) {
+                                $unique_name = uniqid() . '.' . $file_extension;
+                                $upload_path = $upload_dir . $unique_name;
+                                
+                                if (move_uploaded_file($file_tmp, $upload_path)) {
+                                    $uploaded_images[] = "uploads/hair/" . $unique_name;
+                                } else {
+                                    $hair_errors[] = "上传图片失败: " . $file_name;
+                                }
+                            } else {
+                                $hair_errors[] = "不支持的图片格式: " . $file_name;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 如果没有上传图片，添加错误
+            if (empty($uploaded_images)) {
+                $hair_errors[] = "至少需要上传一张图片";
+            }
+            
+            // 如果没有错误，插入数据库
+            if (empty($hair_errors)) {
+                $title = mysqli_real_escape_string($conn, $hair_data['title']);
+                $description = mysqli_real_escape_string($conn, $hair_data['description'] ?? '');
+                $length = floatval($hair_data['length'] ?? 0.00);
+                $weight = floatval($hair_data['weight'] ?? 0.00);
+                $value = floatval($hair_data['value'] ?? 0.00);
+                
+                // 使用第一张图片作为主图片
+                $main_image = $uploaded_images[0];
+                $image2 = isset($uploaded_images[1]) ? $uploaded_images[1] : null;
+                $image3 = isset($uploaded_images[2]) ? $uploaded_images[2] : null;
+                $image4 = isset($uploaded_images[3]) ? $uploaded_images[3] : null;
+                $image5 = isset($uploaded_images[4]) ? $uploaded_images[4] : null;
+                
+                $sql = "INSERT INTO hair (title, description, length, weight, value, image, image2, image3, image4, image5) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                if ($stmt = mysqli_prepare($conn, $sql)) {
+                    mysqli_stmt_bind_param($stmt, "ssdddsssss", $title, $description, $length, $weight, $value, $main_image, $image2, $image3, $image4, $image5);
+                    if (mysqli_stmt_execute($stmt)) {
+                        $batch_success_count++;
+                    } else {
+                        $batch_errors[] = "保存头发 '{$title}' 到数据库时出错：" . mysqli_error($conn);
+                    }
+                    mysqli_stmt_close($stmt);
+                } else {
+                    $batch_errors[] = "准备SQL语句时出错：" . mysqli_error($conn);
+                }
+            } else {
+                $batch_errors = array_merge($batch_errors, array_map(function($err) use ($hair_data) {
+                    return "头发 '{$hair_data['title']}': " . $err;
+                }, $hair_errors));
+            }
+        }
+        
+        // 设置成功消息
+        if ($batch_success_count > 0) {
+            $success_message = "成功批量添加 {$batch_success_count} 个头发！";
+            if (empty($batch_errors)) {
+                header("Location: admin.php?page=hair");
+                exit;
+            }
+        }
+        
+        // 合并错误消息
+        if (!empty($batch_errors)) {
+            $errors = array_merge($errors, $batch_errors);
+        }
+    } else {
+        $errors[] = "没有有效的头发数据！";
+    }
+}
+
+// 获取所有头发
+$hair_list = [];
+
+// 分页设置
+$items_per_page_options = [10, 25, 50, 100];
+$default_items_per_page = 10;
+
+// 获取用户选择的每页显示数量
+$items_per_page = isset($_GET['items_per_page']) ? intval($_GET['items_per_page']) : $default_items_per_page;
+
+// 确保每页显示数量是有效选项
+if (!in_array($items_per_page, $items_per_page_options)) {
+    $items_per_page = $default_items_per_page;
+}
+
+// 获取当前页码
+$current_page = isset($_GET['page_num']) ? intval($_GET['page_num']) : 1;
+if ($current_page < 1) {
+    $current_page = 1;
+}
+
+// 处理搜索功能
+$search_term = '';
+if (isset($_GET['search']) && !empty($_GET['search'])) {
+    $search_term = trim($_GET['search']);
+}
+
+// 构建SQL查询
+$sql = "SELECT * FROM hair WHERE 1=1";
+
+// 添加搜索条件
+if (!empty($search_term)) {
+    if (is_numeric($search_term)) {
+        $sql .= " AND (id = " . intval($search_term) . " OR title LIKE '%" . mysqli_real_escape_string($conn, $search_term) . "%')";
+    } else {
+        $sql .= " AND title LIKE '%" . mysqli_real_escape_string($conn, $search_term) . "%'";
+    }
+}
+
+// 获取总记录数
+$count_sql = "SELECT COUNT(*) as total FROM (" . $sql . ") as count_table";
+$count_result = mysqli_query($conn, $count_sql);
+$total_records = 0;
+if ($count_result && $count_row = mysqli_fetch_assoc($count_result)) {
+    $total_records = $count_row['total'];
+}
+
+// 计算总页数
+$total_pages = ceil($total_records / $items_per_page);
+
+// 确保当前页码不超过总页数
+if ($current_page > $total_pages && $total_pages > 0) {
+    $current_page = $total_pages;
+}
+
+// 计算LIMIT子句的偏移量
+$offset = ($current_page - 1) * $items_per_page;
+
+// 添加排序和分页
+$sql .= " ORDER BY id DESC LIMIT " . $offset . ", " . $items_per_page;
+
+$result = mysqli_query($conn, $sql);
+
+if ($result) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $hair_list[] = $row;
+    }
+    mysqli_free_result($result);
+}
+?>
