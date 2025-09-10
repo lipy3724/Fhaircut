@@ -95,31 +95,72 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST['submit_category'])) {
 if (isset($_GET['action']) && $_GET['action'] == 'delete' && isset($_GET['id'])) {
     $category_id = intval($_GET['id']);
 
-    // 首先将该分类下的产品移动到未分类（NULL）
-    $update_products_sql = "UPDATE products SET category_id = NULL WHERE category_id = ?";
-    if ($update_stmt = mysqli_prepare($conn, $update_products_sql)) {
-        mysqli_stmt_bind_param($update_stmt, "i", $category_id);
-        mysqli_stmt_execute($update_stmt);
-        mysqli_stmt_close($update_stmt);
-    }
+    // 开始事务
+    mysqli_autocommit($conn, false);
 
-    // 然后删除分类
-    $delete_sql = "DELETE FROM categories WHERE id = ?";
-    if ($delete_stmt = mysqli_prepare($conn, $delete_sql)) {
-        mysqli_stmt_bind_param($delete_stmt, "i", $category_id);
-
-        if (mysqli_stmt_execute($delete_stmt)) {
-            // 重新整理ID，使其连续
-            reorderCategoryIds($conn);
-
-            $success_message = "分类删除成功";
-            // 使用JavaScript重定向
-            $redirect_script = "<script>window.location.href = 'admin.php?page=categories&success=deleted';</script>";
-        } else {
-            $error_message = "删除分类时出错: " . mysqli_error($conn);
+    try {
+        // 检查该分类是否在产品的附加分类中被使用
+        $check_sql = "SELECT COUNT(*) as count FROM product_categories WHERE category_id = ?";
+        $affected_products_count = 0;
+        if ($check_stmt = mysqli_prepare($conn, $check_sql)) {
+            mysqli_stmt_bind_param($check_stmt, "i", $category_id);
+            mysqli_stmt_execute($check_stmt);
+            $result = mysqli_stmt_get_result($check_stmt);
+            if ($row = mysqli_fetch_assoc($result)) {
+                $affected_products_count = $row['count'];
+            }
+            mysqli_stmt_close($check_stmt);
         }
 
-        mysqli_stmt_close($delete_stmt);
+        // 首先将该分类下的产品移动到未分类（NULL）
+        $update_products_sql = "UPDATE products SET category_id = NULL WHERE category_id = ?";
+        if ($update_stmt = mysqli_prepare($conn, $update_products_sql)) {
+            mysqli_stmt_bind_param($update_stmt, "i", $category_id);
+            mysqli_stmt_execute($update_stmt);
+            $main_category_updates = mysqli_stmt_affected_rows($update_stmt);
+            mysqli_stmt_close($update_stmt);
+            error_log("分类删除：更新了 $main_category_updates 个产品的主分类");
+        }
+
+        // 删除product_categories表中的相关记录（只删除指定分类的关联）
+        $delete_product_categories_sql = "DELETE FROM product_categories WHERE category_id = ?";
+        if ($delete_pc_stmt = mysqli_prepare($conn, $delete_product_categories_sql)) {
+            mysqli_stmt_bind_param($delete_pc_stmt, "i", $category_id);
+            mysqli_stmt_execute($delete_pc_stmt);
+            $additional_category_deletes = mysqli_stmt_affected_rows($delete_pc_stmt);
+            mysqli_stmt_close($delete_pc_stmt);
+            error_log("分类删除：删除了 $additional_category_deletes 个产品的附加分类关系");
+        }
+
+        // 然后删除分类
+        $delete_sql = "DELETE FROM categories WHERE id = ?";
+        if ($delete_stmt = mysqli_prepare($conn, $delete_sql)) {
+            mysqli_stmt_bind_param($delete_stmt, "i", $category_id);
+
+            if (mysqli_stmt_execute($delete_stmt)) {
+                // 重新整理ID，使其连续
+                reorderCategoryIds($conn);
+
+                // 提交事务
+                mysqli_commit($conn);
+                mysqli_autocommit($conn, true);
+
+                $success_message = "分类删除成功（影响了 $main_category_updates 个产品的主分类，$additional_category_deletes 个附加分类关系）";
+                error_log("分类ID: $category_id 删除成功");
+                // 使用JavaScript重定向
+                $redirect_script = "<script>window.location.href = 'admin.php?page=categories&success=deleted';</script>";
+            } else {
+                throw new Exception("删除分类时出错: " . mysqli_error($conn));
+            }
+
+            mysqli_stmt_close($delete_stmt);
+        }
+    } catch (Exception $e) {
+        // 回滚事务
+        mysqli_rollback($conn);
+        mysqli_autocommit($conn, true);
+        $error_message = $e->getMessage();
+        error_log("分类删除失败: " . $e->getMessage());
     }
 }
 
@@ -162,6 +203,12 @@ function reorderCategoryIds($conn) {
             $sql = "UPDATE products p
                     INNER JOIN temp_categories t ON p.category_id = t.old_id
                     SET p.category_id = t.id";
+            mysqli_query($conn, $sql);
+
+            // 更新product_categories表中的category_id引用
+            $sql = "UPDATE product_categories pc
+                    INNER JOIN temp_categories t ON pc.category_id = t.old_id
+                    SET pc.category_id = t.id";
             mysqli_query($conn, $sql);
 
             // 清空原分类表
@@ -344,7 +391,7 @@ echo $redirect_script;
             <td><?php echo $category['products_count']; ?></td>
                 <td class="actions">
                     <a href="admin.php?page=categories&action=edit&id=<?php echo $category['id']; ?>" class="edit-button">编辑</a>
-                    <a href="admin.php?page=categories&action=delete&id=<?php echo $category['id']; ?>" class="delete-button" onclick="return confirm('确定要删除这个分类吗？该分类下的所有产品将被移动到未分类。');">删除</a>
+                    <a href="admin.php?page=categories&action=delete&id=<?php echo $category['id']; ?>" class="delete-button" onclick="return confirm('确定要删除这个分类吗？\n该分类下的产品将被移动到未分类，\n该分类的所有附加分类关系也会被删除。');">删除</a>
             </td>
         </tr>
         <?php endforeach; ?>

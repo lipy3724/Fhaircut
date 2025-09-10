@@ -28,6 +28,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     mysqli_begin_transaction($conn);
     
     try {
+        // 验证category_ids
+        if (!is_array($category_ids)) {
+            throw new Exception('category_ids必须是数组');
+        }
+        
         // 删除现有的产品类别关系
         $delete_sql = "DELETE FROM product_categories WHERE product_id = ?";
         $delete_stmt = mysqli_prepare($conn, $delete_sql);

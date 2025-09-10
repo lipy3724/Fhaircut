@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if ($product_id > 0) {
         // 处理产品类别关系
-        if (isset($_POST['category_ids']) && !empty($_POST['category_ids'])) {
+        if (isset($_POST['category_ids']) && is_array($_POST['category_ids']) && !empty($_POST['category_ids'])) {
             // 记录类别信息
             error_log("类别数据: " . print_r($_POST['category_ids'], true));
             // 先删除旧的类别关系

@@ -712,6 +712,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $photo_pack_price = floatval($_POST['photo_pack_price']);
         $category_ids = isset($_POST['category_ids']) ? $_POST['category_ids'] : [];
         $category_id = !empty($category_ids) ? intval($category_ids[0]) : 0; // 兼容旧代码
+        
+        // 详细日志记录
+        error_log("=== 产品编辑操作开始 ===");
+        error_log("操作类型: $action");
+        error_log("产品ID: $product_id");
+        error_log("产品标题: $title");
+        error_log("分类数据: " . json_encode($category_ids));
+        error_log("POST数据概览: " . json_encode(array_keys($_POST)));
         $guest_visible = 1; // 默认设置为游客可见
         $show_on_homepage = isset($_POST['show_on_homepage']) ? 1 : 0;
         $errors = [];
@@ -2284,7 +2292,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         $success_message = "产品更新成功";
                         
                                 // 处理产品类别关系
-                                if (isset($_POST['category_ids']) && is_array($_POST['category_ids'])) {
+                                if (isset($_POST['category_ids']) && is_array($_POST['category_ids']) && !empty($_POST['category_ids'])) {
+                                    // 表单明确提供了分类数据，进行完整的分类更新
+                                    error_log("产品更新: 检测到category_ids，进行分类更新. 产品ID: $product_id, 分类: " . implode(',', $_POST['category_ids']));
                                     
                                     // 先删除旧的类别关系
                                     $delete_cat_sql = "DELETE FROM product_categories WHERE product_id = ?"; 
@@ -2328,7 +2338,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                                             }
                                         }
                                     }
-                        }
+                                } else {
+                                    // 表单没有提供分类数据或分类为空，保持现有分类不变
+                                    error_log("产品更新: 未检测到有效的category_ids，保持现有分类不变. 产品ID: $product_id");
+                                }
                         
                         // 直接更新paid_photos_formats字段，确保值正确
                         if (!empty($manualFormats)) {

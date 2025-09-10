@@ -1,0 +1,8 @@
+最新备份信息
+================
+备份文件: jianfa_db_backup_2025-09-10_07-58-32.sql
+备份时间: 2025-09-10 07:58:32
+数据库: jianfa_db
+表数量: 14
+文件大小: 0.03 MB
+备份路径: /Users/huangxiaoyun/Documents/jianfa/jianfa1 2/database_backups/jianfa_db_backup_2025-09-10_07-58-32.sql
