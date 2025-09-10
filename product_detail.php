@@ -32,6 +32,28 @@ if ($stmt = mysqli_prepare($conn, $sql)) {
     mysqli_stmt_close($stmt);
 }
 
+// 获取所有分类（包括主分类和附加分类）
+$all_categories = [];
+$additional_categories = [];
+if ($product) {
+    $sql = "SELECT c.id, c.name FROM product_categories pc 
+            LEFT JOIN categories c ON pc.category_id = c.id 
+            WHERE pc.product_id = ? ORDER BY c.name";
+    if ($stmt = mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, 'i', $productId);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($result)) {
+            $all_categories[] = $row;
+            // 如果不是主分类，则添加到附加分类列表
+            if ($row['id'] != $product['category_id']) {
+                $additional_categories[] = $row['name'];
+            }
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
 if (!$product) {
     header('Location: main.php');
     exit;
@@ -636,7 +658,13 @@ $showPhotoCartButton = $hasPhotoPackPrice && $hasPhotoContent;
       </div>
 
       <div class="meta">
-        <div class="meta-item">Category: <b><?php echo htmlspecialchars($product['category_name']); ?></b></div>
+        <div class="meta-item">
+          Category: <b><?php echo htmlspecialchars($product['category_name']); ?></b>
+          <?php if (!empty($additional_categories)): ?>
+            <br><span style="font-size: 12px; color: #666;">Additional: 
+            <?php echo implode(', ', array_map('htmlspecialchars', $additional_categories)); ?></span>
+          <?php endif; ?>
+        </div>
         <div class="meta-item">Clicks: <b><?php echo intval($product['clicks']); ?></b></div>
       </div>
       

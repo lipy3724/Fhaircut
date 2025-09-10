@@ -32,7 +32,11 @@ if (mysqli_query($conn, $sql)) {
         status ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
         is_activated TINYINT(1) NOT NULL DEFAULT 0,
         activation_payment_id VARCHAR(100) DEFAULT NULL,
-        registered_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        balance DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        registered_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login_ip VARCHAR(45) DEFAULT NULL,
+        last_login_country VARCHAR(100) DEFAULT NULL,
+        last_login_time DATETIME DEFAULT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     
     if (!mysqli_query($conn, $sql)) {
@@ -75,6 +79,42 @@ if (mysqli_query($conn, $sql)) {
         }
     }
     
+    // 检查users表是否有last_login_ip字段，如果没有则添加
+    $check_column_sql = "SHOW COLUMNS FROM users LIKE 'last_login_ip'";
+    $check_column_result = mysqli_query($conn, $check_column_sql);
+    if ($check_column_result && mysqli_num_rows($check_column_result) == 0) {
+        $add_column_sql = "ALTER TABLE users ADD COLUMN last_login_ip VARCHAR(45) DEFAULT NULL AFTER balance";
+        if (mysqli_query($conn, $add_column_sql)) {
+            error_log("Added last_login_ip column to users table");
+        } else {
+            error_log("Error adding last_login_ip column: " . mysqli_error($conn));
+        }
+    }
+    
+    // 检查users表是否有last_login_country字段，如果没有则添加
+    $check_column_sql = "SHOW COLUMNS FROM users LIKE 'last_login_country'";
+    $check_column_result = mysqli_query($conn, $check_column_sql);
+    if ($check_column_result && mysqli_num_rows($check_column_result) == 0) {
+        $add_column_sql = "ALTER TABLE users ADD COLUMN last_login_country VARCHAR(100) DEFAULT NULL AFTER last_login_ip";
+        if (mysqli_query($conn, $add_column_sql)) {
+            error_log("Added last_login_country column to users table");
+        } else {
+            error_log("Error adding last_login_country column: " . mysqli_error($conn));
+        }
+    }
+    
+    // 检查users表是否有last_login_time字段，如果没有则添加
+    $check_column_sql = "SHOW COLUMNS FROM users LIKE 'last_login_time'";
+    $check_column_result = mysqli_query($conn, $check_column_sql);
+    if ($check_column_result && mysqli_num_rows($check_column_result) == 0) {
+        $add_column_sql = "ALTER TABLE users ADD COLUMN last_login_time DATETIME DEFAULT NULL AFTER last_login_country";
+        if (mysqli_query($conn, $add_column_sql)) {
+            error_log("Added last_login_time column to users table");
+        } else {
+            error_log("Error adding last_login_time column: " . mysqli_error($conn));
+        }
+    }
+    
     // 创建products表
     $sql = "CREATE TABLE IF NOT EXISTS products (
         id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -92,12 +132,38 @@ if (mysqli_query($conn, $sql)) {
         category_id INT(11),
         created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         show_on_homepage BOOLEAN DEFAULT FALSE,
+        paid_video VARCHAR(255),
+        paid_video_size BIGINT DEFAULT 0,
+        paid_video_duration INT DEFAULT 0,
         images_total_size BIGINT DEFAULT 0,
         images_count INT DEFAULT 0,
         images_formats VARCHAR(255),
-        paid_video VARCHAR(255),
-        paid_video_size BIGINT DEFAULT 0,
-        paid_video_duration INT DEFAULT 0
+        paid_photos_zip VARCHAR(255),
+        paid_photos_total_size BIGINT DEFAULT 0,
+        paid_photos_count INT DEFAULT 0,
+        paid_photos_formats VARCHAR(255),
+        image6 VARCHAR(255),
+        photo_pack_price DECIMAL(10,2) DEFAULT 0.00,
+        member_image1 VARCHAR(255),
+        member_image2 VARCHAR(255),
+        member_image3 VARCHAR(255),
+        member_image4 VARCHAR(255),
+        member_image5 VARCHAR(255),
+        member_image6 VARCHAR(255),
+        member_image7 VARCHAR(255),
+        member_image8 VARCHAR(255),
+        member_image9 VARCHAR(255),
+        member_image10 VARCHAR(255),
+        member_image11 VARCHAR(255),
+        member_image12 VARCHAR(255),
+        member_image13 VARCHAR(255),
+        member_image14 VARCHAR(255),
+        member_image15 VARCHAR(255),
+        member_image16 VARCHAR(255),
+        member_image17 VARCHAR(255),
+        member_image18 VARCHAR(255),
+        member_image19 VARCHAR(255),
+        member_image20 VARCHAR(255)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     
     if (!mysqli_query($conn, $sql)) {
@@ -107,7 +173,8 @@ if (mysqli_query($conn, $sql)) {
     // 创建categories表
     $sql = "CREATE TABLE IF NOT EXISTS categories (
         id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL
+        name VARCHAR(100) NOT NULL,
+        UNIQUE KEY unique_name (name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     
     if (!mysqli_query($conn, $sql)) {
@@ -300,6 +367,150 @@ if (mysqli_query($conn, $sql)) {
                 error_log("修改购买类型字段失败: " . mysqli_error($conn));
             }
         }
+    }
+    
+    // 创建hair表
+    $sql = "CREATE TABLE IF NOT EXISTS hair (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL COMMENT '头发标题',
+        description TEXT DEFAULT NULL COMMENT '头发简介',
+        length DECIMAL(5,2) DEFAULT 0.00 COMMENT '长度(厘米)',
+        weight DECIMAL(8,2) DEFAULT 0.00 COMMENT '重量(克)',
+        value DECIMAL(10,2) DEFAULT 0.00 COMMENT '价值(元)',
+        image VARCHAR(255) DEFAULT NULL COMMENT '主图片',
+        image2 VARCHAR(255) DEFAULT NULL COMMENT '图片2',
+        image3 VARCHAR(255) DEFAULT NULL COMMENT '图片3',
+        image4 VARCHAR(255) DEFAULT NULL COMMENT '图片4',
+        image5 VARCHAR(255) DEFAULT NULL COMMENT '图片5',
+        status ENUM('Active','Inactive') NOT NULL DEFAULT 'Active' COMMENT '状态',
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+        clicks INT(11) DEFAULT 0 COMMENT '点击次数',
+        show_on_homepage TINYINT(1) DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='头发信息表'";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create hair table: " . mysqli_error($conn);
+    }
+    
+    // 创建cart表
+    $sql = "CREATE TABLE IF NOT EXISTS cart (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id INT(11) NOT NULL,
+        item_id INT(11) NOT NULL,
+        is_photo_pack TINYINT(1) NOT NULL DEFAULT 0,
+        quantity INT(11) DEFAULT 1,
+        price DECIMAL(10,2) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        item_type ENUM('photo','video','hair') NOT NULL,
+        UNIQUE KEY unique_cart_item (user_id,item_type,item_id),
+        KEY idx_user_id (user_id),
+        KEY idx_item (item_type,item_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create cart table: " . mysqli_error($conn);
+    }
+    
+    // 创建cart_paypal_mappings表
+    $sql = "CREATE TABLE IF NOT EXISTS cart_paypal_mappings (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id INT(11) NOT NULL,
+        paypal_order_id VARCHAR(255) NOT NULL,
+        cart_ids TEXT NOT NULL,
+        total_amount DECIMAL(10,2) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY user_id (user_id),
+        KEY paypal_order_id (paypal_order_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create cart_paypal_mappings table: " . mysqli_error($conn);
+    }
+    
+    // 创建hair_purchases表
+    $sql = "CREATE TABLE IF NOT EXISTS hair_purchases (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id INT(11) DEFAULT NULL,
+        email VARCHAR(255) DEFAULT NULL,
+        email_source VARCHAR(50) DEFAULT NULL,
+        hair_id INT(11) DEFAULT NULL,
+        order_id VARCHAR(255) DEFAULT NULL,
+        transaction_id VARCHAR(255) DEFAULT NULL,
+        amount DECIMAL(10,2) DEFAULT NULL,
+        purchase_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        email_sent TINYINT(1) DEFAULT 0,
+        purchase_type VARCHAR(50) DEFAULT 'balance',
+        KEY user_id (user_id),
+        KEY hair_id (hair_id),
+        KEY order_id (order_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create hair_purchases table: " . mysqli_error($conn);
+    }
+    
+    // 创建product_categories表
+    $sql = "CREATE TABLE IF NOT EXISTS product_categories (
+        product_id INT(11) NOT NULL,
+        category_id INT(11) NOT NULL,
+        PRIMARY KEY (product_id,category_id),
+        KEY category_id (category_id),
+        FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create product_categories table: " . mysqli_error($conn);
+    }
+    
+    // 创建product_member_images表
+    $sql = "CREATE TABLE IF NOT EXISTS product_member_images (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        product_id INT(11) NOT NULL,
+        image_path VARCHAR(255) NOT NULL,
+        sort_order INT(11) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY product_id (product_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create product_member_images table: " . mysqli_error($conn);
+    }
+    
+    // 创建settings表
+    $sql = "CREATE TABLE IF NOT EXISTS settings (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        setting_key VARCHAR(100) NOT NULL,
+        setting_value TEXT DEFAULT NULL,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY setting_key (setting_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create settings table: " . mysqli_error($conn);
+    }
+    
+    // 创建user_login_logs表
+    $sql = "CREATE TABLE IF NOT EXISTS user_login_logs (
+        id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        user_id INT(11) DEFAULT NULL,
+        username VARCHAR(50) NOT NULL,
+        email VARCHAR(100) NOT NULL,
+        login_ip VARCHAR(45) NOT NULL,
+        login_location VARCHAR(100) DEFAULT '未知',
+        login_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        user_agent TEXT DEFAULT NULL,
+        KEY idx_user_id (user_id),
+        KEY idx_username (username),
+        KEY idx_login_time (login_time),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!mysqli_query($conn, $sql)) {
+        echo "Failed to create user_login_logs table: " . mysqli_error($conn);
     }
     
     // 关闭初始连接

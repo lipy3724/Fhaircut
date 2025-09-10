@@ -30,6 +30,28 @@ if ($stmt = mysqli_prepare($conn, $sql)) {
     mysqli_stmt_close($stmt);
 }
 
+// 获取所有分类（包括主分类和附加分类）
+$all_categories = [];
+$additional_categories = [];
+if ($product) {
+    $sql = "SELECT c.id, c.name FROM product_categories pc 
+            LEFT JOIN categories c ON pc.category_id = c.id 
+            WHERE pc.product_id = ? ORDER BY c.name";
+    if ($stmt = mysqli_prepare($conn, $sql)) {
+        mysqli_stmt_bind_param($stmt, 'i', $product_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        while ($row = mysqli_fetch_assoc($result)) {
+            $all_categories[] = $row;
+            // 如果不是主分类，则添加到附加分类列表
+            if ($row['id'] != $product['category_id']) {
+                $additional_categories[] = $row['name'];
+            }
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
 // 如果产品不存在，重定向到主页
 if (!$product) {
     header('Location: main.php');
@@ -254,7 +276,13 @@ if ($stmt = mysqli_prepare($conn, $update_sql)) {
             <div class="product-meta">
                 <div class="meta-item">
                     <div class="meta-label">类别</div>
-                    <div class="meta-value"><?php echo htmlspecialchars($product['category_name']); ?></div>
+                    <div class="meta-value">
+                        <?php echo htmlspecialchars($product['category_name']); ?>
+                        <?php if (!empty($additional_categories)): ?>
+                            <br><span style="font-size: 12px; color: #666;">附加分类: 
+                            <?php echo implode(', ', array_map('htmlspecialchars', $additional_categories)); ?></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div class="meta-item">
                     <div class="meta-label">价格</div>
