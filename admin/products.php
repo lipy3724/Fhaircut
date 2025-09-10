@@ -174,8 +174,6 @@ function safeDeleteFile($relativePath) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
     $action = $_POST['action'];
     
-    // 添加调试信息
-    error_log("POST data: " . print_r($_POST, true));
     
     // 处理批量上传产品
     if ($action == 'batch_add_product') {
@@ -183,6 +181,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $success_count = 0;
         $error_count = 0;
         $messages = [];
+        
+        // 添加调试日志
+        error_log("=== 批量添加产品开始 ===");
+        error_log("产品数量: " . $product_count);
+        error_log("POST数据: " . print_r($_POST, true));
         
         // 循环处理每个产品
         for ($i = 1; $i <= $product_count; $i++) {
@@ -198,6 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $category_ids = isset($_POST['products'][$i]['category_ids']) ? $_POST['products'][$i]['category_ids'] : [];
             $guest = isset($_POST['products'][$i]['guest']) ? intval($_POST['products'][$i]['guest']) : 0;
             $show_on_homepage = isset($_POST['products'][$i]['show_on_homepage']) ? intval($_POST['products'][$i]['show_on_homepage']) : 0;
+            
             
             // 验证必填字段
             $product_errors = [];
@@ -519,11 +523,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     }
                     
                     // 构建绑定参数类型字符串 - 20个会员图片字段，每个都是's'类型
-                    $types = 'isddissssss'; // 基本字段
+                    $types = 'isddiisssss'; // 基本字段：id, title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4 (11个)
                     for ($j = 1; $j <= 20; $j++) {
                         $types .= 's'; // 为每个会员图片字段添加's'类型
                     }
-                    $types .= 'iiiissdsiii'; // 剩余字段
+                    $types .= 'iiissiissii'; // 剩余字段：show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats (11个)
                     
                     // 准备参数引用数组
                     $bindParams = [$types];
@@ -565,7 +569,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     mysqli_stmt_bind_param($stmt, ...$bindParams);
                     
                     if (mysqli_stmt_execute($stmt)) {
+                        $new_id = $custom_id; // 使用自定义ID
                         $success_count++;
+                        
+                        // 处理产品类别关系
+                        if (!empty($category_ids)) {
+                            $insert_cat_sql = "INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)"; 
+                            if ($insert_cat_stmt = mysqli_prepare($conn, $insert_cat_sql)) {
+                                foreach ($category_ids as $cat_id) {
+                                    $cat_id = intval($cat_id);
+                                    if ($cat_id > 0) {
+                                        mysqli_stmt_bind_param($insert_cat_stmt, "ii", $new_id, $cat_id);
+                                        mysqli_stmt_execute($insert_cat_stmt);
+                                    }
+                                }
+                                mysqli_stmt_close($insert_cat_stmt);
+                            }
+                        }
                     } else {
                         $error_count++;
                         $messages[] = "产品 #$i: 保存失败 - " . mysqli_error($conn);
@@ -589,11 +609,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     }
                     
                     // 构建绑定参数类型字符串 - 20个会员图片字段，每个都是's'类型
-                    $types = 'ssddissssss'; // 基本字段
+                    $types = 'ssddisssss'; // 基本字段：title, subtitle, price, photo_pack_price, category_id, guest, image, image2, image3, image4 (10个)
                     for ($j = 1; $j <= 20; $j++) {
                         $types .= 's'; // 为每个会员图片字段添加's'类型
                     }
-                    $types .= 'iiiissdsiii'; // 剩余字段
+                    $types .= 'iiissiissii'; // 剩余字段：show_on_homepage, images_total_size, images_count, images_formats, paid_video, paid_video_size, paid_video_duration, paid_photos_zip, paid_photos_total_size, paid_photos_count, paid_photos_formats (11个)
                     
                     // 准备参数引用数组
                     $bindParams = [$types];
@@ -634,7 +654,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                     mysqli_stmt_bind_param($stmt, ...$bindParams);
                     
                     if (mysqli_stmt_execute($stmt)) {
+                        $new_id = mysqli_insert_id($conn); // 获取自动生成的ID
                         $success_count++;
+                        
+                        // 处理产品类别关系
+                        if (!empty($category_ids)) {
+                            $insert_cat_sql = "INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)"; 
+                            if ($insert_cat_stmt = mysqli_prepare($conn, $insert_cat_sql)) {
+                                foreach ($category_ids as $cat_id) {
+                                    $cat_id = intval($cat_id);
+                                    if ($cat_id > 0) {
+                                        mysqli_stmt_bind_param($insert_cat_stmt, "ii", $new_id, $cat_id);
+                                        mysqli_stmt_execute($insert_cat_stmt);
+                                    }
+                                }
+                                mysqli_stmt_close($insert_cat_stmt);
+                            }
+                        }
                     } else {
                         $error_count++;
                         $messages[] = "产品 #$i: 保存失败 - " . mysqli_error($conn);
@@ -827,9 +863,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         ];
         $upload_success = false;
         
-        // 调试信息
-        $debug_info = [];
-        $debug_info['FILES'] = isset($_FILES) ? $_FILES : 'No FILES';
         
         // 如果是编辑模式，先获取当前产品的数据，以便保留未更改的图片
         $product_data = [];
@@ -1076,8 +1109,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $manualCount = isset($_POST['paid_photos_count_manual']) ? intval($_POST['paid_photos_count_manual']) : 0;
         $manualFormats = isset($_POST['paid_photos_formats_manual']) ? trim($_POST['paid_photos_formats_manual']) : '';
         
-        // 添加调试信息
-        error_log("收到前端手动统计值 - 数量: " . $manualCount . ", 格式: " . $manualFormats);
 
         // 处理付费图片文件上传（支持多文件）
         if (isset($_FILES['paid_photos_file']) && !empty($_FILES['paid_photos_file']['name'])) {
@@ -1252,8 +1283,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 }
             }
             
-            // 调试信息
-            error_log("付费图片统计 - 数量: " . $paidPhotosCount . ", 格式: " . $paidPhotosFormats . ", 大小: " . $paidPhotosTotalSize);
         }
 
         // 初始化图片路径数组
@@ -1551,8 +1580,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                 $finalFormatSet['jpg'] = true;
             }
             
-            // 调试信息
-            error_log("图片格式统计: " . print_r(array_keys($finalFormatSet), true));
             
             // 自动设置图片统计字段
             // 在编辑模式下，如果前端提供了实时统计值，优先使用前端的值
@@ -1722,16 +1749,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             $success_message = "产品添加成功，ID: $new_id";
                             
                             // 处理产品类别关系
-                            if (isset($_POST['category_ids']) && is_array($_POST['category_ids'])) {
+                            // 检查是否为批量添加模式
+                            $categories_to_insert = [];
+                            if ($action == 'batch_add_product' && !empty($category_ids)) {
+                                // 批量添加模式：使用$category_ids变量
+                                $categories_to_insert = $category_ids;
+                            } elseif (isset($_POST['category_ids']) && is_array($_POST['category_ids'])) {
+                                // 单个添加模式：使用$_POST['category_ids']
+                                $categories_to_insert = $_POST['category_ids'];
+                            }
+                            
+                            if (!empty($categories_to_insert)) {
                                 // 插入新的类别关系
                                 $insert_cat_sql = "INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)"; 
                                 if ($insert_cat_stmt = mysqli_prepare($conn, $insert_cat_sql)) {
-                                    foreach ($_POST['category_ids'] as $cat_id) {
+                                    $cat_success_count = 0;
+                                    foreach ($categories_to_insert as $cat_id) {
                                         $cat_id = intval($cat_id);
-                                        mysqli_stmt_bind_param($insert_cat_stmt, "ii", $new_id, $cat_id);
-                                        mysqli_stmt_execute($insert_cat_stmt);
+                                        if ($cat_id > 0) {
+                                            mysqli_stmt_bind_param($insert_cat_stmt, "ii", $new_id, $cat_id);
+                                            if (mysqli_stmt_execute($insert_cat_stmt)) {
+                                                $cat_success_count++;
+                                            } else {
+                                                error_log("插入类别关系失败: " . mysqli_error($conn) . " - 产品ID: $new_id, 类别ID: $cat_id");
+                                            }
+                                        }
                                     }
                                     mysqli_stmt_close($insert_cat_stmt);
+                                    error_log("产品ID: $new_id 成功添加 $cat_success_count 个类别关系");
                                 }
                             }
                             
@@ -1850,9 +1895,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             }
                         }
                         
-                        // 添加调试信息
-                        error_log("Debug: Attempting to bind parameters for auto-generated ID insert");
-                        error_log("SQL: " . $sql);
                         error_log("Parameters count: " . count([
                             $title, $subtitle, $price, $photo_pack_price, $category_id, $guest_visible,
                             $image_paths['image'], $image_paths['image2'], $image_paths['image3'], $image_paths['image4'], 
@@ -1904,16 +1946,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             $success_message = "产品添加成功，ID: $new_id";
                             
                             // 处理产品类别关系
-                            if (isset($_POST['category_ids']) && is_array($_POST['category_ids'])) {
+                            // 检查是否为批量添加模式
+                            $categories_to_insert = [];
+                            if ($action == 'batch_add_product' && !empty($category_ids)) {
+                                // 批量添加模式：使用$category_ids变量
+                                $categories_to_insert = $category_ids;
+                            } elseif (isset($_POST['category_ids']) && is_array($_POST['category_ids'])) {
+                                // 单个添加模式：使用$_POST['category_ids']
+                                $categories_to_insert = $_POST['category_ids'];
+                            }
+                            
+                            if (!empty($categories_to_insert)) {
                                 // 插入新的类别关系
                                 $insert_cat_sql = "INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)"; 
                                 if ($insert_cat_stmt = mysqli_prepare($conn, $insert_cat_sql)) {
-                                    foreach ($_POST['category_ids'] as $cat_id) {
+                                    $cat_success_count = 0;
+                                    foreach ($categories_to_insert as $cat_id) {
                                         $cat_id = intval($cat_id);
-                                        mysqli_stmt_bind_param($insert_cat_stmt, "ii", $new_id, $cat_id);
-                                        mysqli_stmt_execute($insert_cat_stmt);
+                                        if ($cat_id > 0) {
+                                            mysqli_stmt_bind_param($insert_cat_stmt, "ii", $new_id, $cat_id);
+                                            if (mysqli_stmt_execute($insert_cat_stmt)) {
+                                                $cat_success_count++;
+                                            } else {
+                                                error_log("插入类别关系失败: " . mysqli_error($conn) . " - 产品ID: $new_id, 类别ID: $cat_id");
+                                            }
+                                        }
                                     }
                                     mysqli_stmt_close($insert_cat_stmt);
+                                    error_log("产品ID: $new_id 成功添加 $cat_success_count 个类别关系");
                                 }
                             }
                             
@@ -2147,9 +2207,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             error_log("编辑模式：使用自动计算的图片格式统计: " . $imagesFormatsStr);
                         }
 
-                        // 添加调试信息
-                        error_log("paidPhotosFormats before binding: " . $paidPhotosFormats);
-                        error_log("manualFormats before binding: " . $manualFormats);
                         
                         // 确保$paidPhotosFormats的值正确
                         if (empty($paidPhotosFormats) && !empty($manualFormats)) {
@@ -2228,9 +2285,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                         
                                 // 处理产品类别关系
                                 if (isset($_POST['category_ids']) && is_array($_POST['category_ids'])) {
-                                    // 记录要更新的类别
-                                    $category_ids_debug = implode(", ", array_map('intval', $_POST['category_ids']));
-                                    error_log("产品ID: $product_id 的提交类别: $category_ids_debug");
                                     
                                     // 先删除旧的类别关系
                                     $delete_cat_sql = "DELETE FROM product_categories WHERE product_id = ?"; 
@@ -2329,8 +2383,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
                             mysqli_stmt_execute($verify_stmt);
                             $verify_result = mysqli_stmt_get_result($verify_stmt);
                             if ($verify_row = mysqli_fetch_assoc($verify_result)) {
-                                // 添加调试信息
-                                error_log("Verified paid_photos_formats: " . ($verify_row['paid_photos_formats'] ?? 'NULL'));
                             }
                             mysqli_stmt_close($verify_stmt);
                         }
@@ -2698,7 +2750,9 @@ $sql .= " GROUP BY p.id";
 
 // 获取总记录数
 $count_sql = "SELECT COUNT(*) as total FROM (SELECT p.id FROM products p 
+                LEFT JOIN categories c ON p.category_id = c.id 
                 LEFT JOIN product_categories pc ON p.id = pc.product_id
+                LEFT JOIN categories cat ON pc.category_id = cat.id
                 WHERE 1=1";
                 
 // 添加搜索条件到计数查询
@@ -2902,18 +2956,29 @@ if ($result) {
                 var forms = document.querySelectorAll('.product-form');
                 var hasError = false;
                 
+                
                 forms.forEach(function(form, index) {
                     var formIndex = index + 1;
                     var categorySelect = form.querySelector('select[name="products[' + formIndex + '][category_ids][]"]');
                     
-                    if (categorySelect && categorySelect.selectedOptions.length === 0) {
-                        alert('产品 #' + formIndex + ': 请选择至少一个类别');
-                        hasError = true;
+                    if (categorySelect) {
+                        var selectedValues = Array.from(categorySelect.selectedOptions).map(option => option.value);
+                        var selectedTexts = Array.from(categorySelect.selectedOptions).map(option => option.text);
+                        
+                        
+                        if (categorySelect.selectedOptions.length === 0) {
+                            alert('产品 #' + formIndex + ': 请选择至少一个类别');
+                            hasError = true;
+                        }
                     }
                 });
                 
                 if (hasError) {
                     e.preventDefault();
+                } else {
+                    if (!confirm('确认批量上传这些产品吗？')) {
+                        e.preventDefault();
+                    }
                 }
             });
             </script>
@@ -3058,11 +3123,6 @@ if ($result) {
                                 $selected_categories[] = $product_data['category_id'];
                             }
                             
-                            // 调试信息
-                            if ($edit_mode && !empty($product_data['id'])) {
-                                $selected_categories_debug = implode(", ", $selected_categories);
-                                error_log("编辑产品ID: {$product_data['id']} 的已选类别: $selected_categories_debug");
-                            }
                             
                             foreach ($categories as $category): 
                                 $is_selected = in_array($category['id'], $selected_categories);
@@ -3279,24 +3339,18 @@ if ($result) {
             <script>
             // 页面加载时获取产品当前类别
             var productId = <?php echo $product_data['id']; ?>;
-            console.log("当前产品ID:", productId);
             
             // 获取产品类别并设置选中状态
             function fetchProductCategories() {
-                console.log("开始获取产品类别...");
                 var xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'get_product_categories.php?product_id=' + productId + '&t=' + new Date().getTime(), true);
-                    console.log('获取产品类别，产品ID: ' + productId);
+                xhr.open('GET', 'admin/get_product_categories.php?product_id=' + productId + '&t=' + new Date().getTime(), true);
                 xhr.onload = function() {
-                    console.log("接收到响应:", xhr.status, xhr.responseText);
                     if (xhr.status === 200) {
                         try {
                             var response = JSON.parse(xhr.responseText);
-                            console.log("解析的响应:", response);
                             if (response.success) {
                                 var categorySelect = document.getElementById('category_ids');
                                 var categories = response.categories;
-                                console.log("获取到的类别:", categories);
                                 
                                 // 清除所有选中状态
                                 for (var i = 0; i < categorySelect.options.length; i++) {
@@ -3308,27 +3362,38 @@ if ($result) {
                                     var optionValue = parseInt(categorySelect.options[i].value);
                                     if (categories.indexOf(optionValue) !== -1) {
                                         categorySelect.options[i].selected = true;
-                                        console.log("选中类别:", optionValue, categorySelect.options[i].text);
                                     }
                                 }
-                            } else {
-                                console.error('获取类别失败:', response.message);
+                                
                             }
                         } catch (e) {
-                            console.error('响应解析错误:', e, xhr.responseText);
                         }
-                    } else {
-                        console.error('请求失败，状态码:', xhr.status);
                     }
                 };
                 xhr.onerror = function() {
-                    console.error('请求错误，请检查网络连接');
                 };
                 xhr.send();
             }
             
             // 页面加载时获取产品类别
             fetchProductCategories();
+            
+            // 表单提交时的调试
+            document.querySelector('form').addEventListener('submit', function(e) {
+                var categorySelect = document.getElementById('category_ids');
+                var selectedValues = Array.from(categorySelect.selectedOptions).map(option => option.value);
+                
+                if (selectedValues.length === 0) {
+                    alert('请至少选择一个分类！');
+                    e.preventDefault();
+                    return;
+                }
+                
+                // 显示提交确认
+                if (!confirm('确认提交？选中的分类：[' + selectedValues.join(', ') + ']')) {
+                    e.preventDefault();
+                }
+            });
             
             </script>
             <?php endif; ?>
@@ -3836,7 +3901,36 @@ if ($result) {
                     <?php endif; ?>
                 </td>
                 <td><?php echo htmlspecialchars($product['title']); ?></td>
-                <td><?php echo isset($product['category_name']) ? htmlspecialchars($product['category_name']) : '未分类'; ?></td>
+                <td>
+                    <?php 
+                    // 显示主分类和附加分类
+                    $categories = [];
+                    
+                    // 添加主分类
+                    if (isset($product['category_name']) && !empty($product['category_name'])) {
+                        $categories[] = '<strong>' . htmlspecialchars($product['category_name']) . '</strong>';
+                    }
+                    
+                    // 添加附加分类
+                    if (isset($product['all_category_names']) && !empty($product['all_category_names'])) {
+                        $all_cats = explode(',', $product['all_category_names']);
+                        $main_cat = $product['category_name'] ?? '';
+                        
+                        foreach ($all_cats as $cat) {
+                            $cat = trim($cat);
+                            if (!empty($cat) && $cat !== $main_cat) {
+                                $categories[] = htmlspecialchars($cat);
+                            }
+                        }
+                    }
+                    
+                    if (!empty($categories)) {
+                        echo implode(', ', $categories);
+                    } else {
+                        echo '未分类';
+                    }
+                    ?>
+                </td>
                 <td>$<?php echo number_format($product['price'], 2); ?></td>
                 <td><?php echo $product['show_on_homepage'] ? '<span style="color: green; font-weight: bold;">是</span>' : '否'; ?></td>
                 <td><?php echo date('Y-m-d', strtotime($product['created_date'])); ?></td>
@@ -5892,11 +5986,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 如果字段存在且有值，确保显示正确
     if (countField && sizeField && formatField) {
-        console.log('编辑模式初始化图片统计:', {
-            count: countField.value,
-            size: sizeField.value,
-            formats: formatField.value
-        });
         
         // 更新大小显示
         if (sizeDisplay && sizeField.value) {
@@ -5908,4 +5997,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     <?php endif; ?>
 });
+</script>
 </script>
